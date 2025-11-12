@@ -1,0 +1,4 @@
+# Muni-moldes-website/.gitignore
+
+# Diretório de dados do PostgreSQL gerenciado pelo Docker
+pgdata/
