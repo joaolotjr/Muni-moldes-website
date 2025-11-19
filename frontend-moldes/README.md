@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# 🧁 Muni Moldes - Website (Monorepo)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositório contém o código-fonte do projeto Muni Moldes, uma fábrica de moldes de silicone artesanais para confeitaria e artesanato.
 
-Currently, two official plugins are available:
+## 📂 Estrutura do Monorepo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+O projeto é um monorepo que contém:
 
-## React Compiler
+- **`frontend-moldes/`**: O site institucional e futuro e-commerce (React).
+- **`backend-moldes/`**: A API de gerenciamento do catálogo e pedidos (NestJS).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Tecnologias Utilizadas
 
-## Expanding the ESLint configuration
+### Frontend (`frontend-moldes`)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **React (Vite)**: Biblioteca para construção da interface.
+- **TypeScript**: Para tipagem estática e código mais seguro.
+- **Tailwind CSS**: Framework de CSS utilitário para estilização rápida e responsiva.
+- **React Router DOM**: Para gerenciamento de rotas e navegação.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Backend (`backend-moldes`)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **NestJS**: Framework Node.js para a API.
+- **PostgreSQL**: Banco de dados relacional.
+- **TypeORM**: ORM para interação com o banco de dados.
+- **Docker**: Para gerenciamento do contêiner do PostgreSQL.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🚀 Como Rodar o Frontend
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1.  **Pré-requisito**: Certifique-se de ter o Node.js instalado (versão LTS recomendada).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+2.  Navegue até a pasta do frontend:
+    ```bash
+    cd frontend-moldes
+    ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3.  Instale as dependências:
+    ```bash
+    npm install
+    ```
+
+4.  Inicie o servidor de desenvolvimento:
+    ```bash
+    npm run dev
+    ```
+
+5.  Acesse no navegador:
+    O terminal mostrará o link para acessar a aplicação, geralmente `http://localhost:5173`.
+
+## 🎨 Estilização e Identidade Visual
+
+A paleta de cores da marca está configurada no arquivo `frontend-moldes/tailwind.config.js`:
+
+- **Rosa (`munipink`)**: Destaques e Botões.
+- **Verde (`munigreen`)**: Detalhes e Acentos.
+- **Marrom Escuro (`munidark`)**: Textos e Títulos.
+- **Bege (`munilight`)**: Fundos suaves.
+
+---
+*Desenvolvido para Muni Moldes* 🎨
