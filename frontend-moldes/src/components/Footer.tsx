@@ -13,6 +13,7 @@ const Footer: React.FC = () => {
           <p className="text-sm font-sans mb-2">Qualidade e Tradição desde 2018.</p>
           <p className="text-sm font-sans">Transformando suas ideias em realidade.</p>
         </div>
+        
 
         {/* Coluna 2: Navegação Rápida */}
         <div>
