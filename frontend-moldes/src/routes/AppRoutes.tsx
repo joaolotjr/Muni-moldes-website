@@ -14,7 +14,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/sobre" element={<Layout><AboutPage /></Layout>} />
         <Route path="/catalogo" element={<Layout><CatalogPage /></Layout>} />
         <Route path="/contato" element={<Layout><ContactPage /></Layout>} />
-        {/* Você pode adicionar uma rota 404 aqui se quiser */}
+        {/* Você pode adicionar uma rota 404 aqui se quiser  */}
       </Routes>
     </Router>
   );
