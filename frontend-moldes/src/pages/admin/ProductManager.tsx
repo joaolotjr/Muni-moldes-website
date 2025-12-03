@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { db } from '../../services/db';
-import { Product } from '../../types';
+import { type Product } from '../../types';
 import { Plus, Edit, Trash2, X, Save, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 export const ProductManager: React.FC = () => {

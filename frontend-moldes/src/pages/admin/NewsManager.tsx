@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { db } from '../../services/db';
-import { NewsArticle } from '../../types';
+import { type NewsArticle } from '../../types';
 import { Plus, Edit, Trash2, X, Save, Upload, Image as ImageIcon } from 'lucide-react';
 
 export const NewsManager: React.FC = () => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { db } from '../../services/db';
-import { Product } from '../../types';
+import { type Product } from '../../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Package, Eye, Tag } from 'lucide-react';
 

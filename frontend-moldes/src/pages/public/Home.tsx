@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Box, Droplet } from 'lucide-react';
 import { db } from '../../services/db';
-import { Product } from '../../types';
+import { type Product } from '../../types';
 import { SEO } from '../../components/SEO';
 
 export const Home: React.FC = () => {

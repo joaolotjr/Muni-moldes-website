@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Filter, X } from 'lucide-react';
 import { db } from '../../services/db';
-import { Product } from '../../types';
+import { type Product } from '../../types';
 import { SEO } from '../../components/SEO';
 
 export const Catalog: React.FC = () => {

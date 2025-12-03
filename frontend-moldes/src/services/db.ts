@@ -1,4 +1,4 @@
-import { Product, NewsArticle, DEFAULT_COLLECTIONS } from '../types';
+import { DEFAULT_COLLECTIONS, type Product, type NewsArticle} from '../types';
 
 // Initial Mock Data
 const INITIAL_PRODUCTS: Product[] = [

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INTERESTS, ContactForm } from '../../types';
+import { INTERESTS, type  ContactForm } from '../../types';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { SEO } from '../../components/SEO';
 

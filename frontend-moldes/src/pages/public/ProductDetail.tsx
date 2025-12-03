@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MessageCircle, Ruler, Box, Info, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '../../services/db';
-import { Product } from '../../types';
+import { type Product } from '../../types';
 import { SEO } from '../../components/SEO';
 
 export const ProductDetail: React.FC = () => {

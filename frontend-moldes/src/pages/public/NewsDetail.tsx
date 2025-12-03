@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { db } from '../../services/db';
-import { NewsArticle } from '../../types';
+import { type NewsArticle } from '../../types';
 import { SEO } from '../../components/SEO';
 
 export const NewsDetail: React.FC = () => {

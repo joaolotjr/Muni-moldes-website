@@ -3,16 +3,73 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Muni Moldes | Fábrica de Moldes de Silicone Premium</title>
+    <title>Muni Moldes - Moldes de Silicone Profissionais</title>
+    <meta name="description" content="Catálogo digital de moldes de silicone para artesanato e confeitaria. Vendas B2B e atacado." />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Muni Moldes" />
     
-    <!-- Fontes -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  </head>
-  <body class="bg-munilight text-munidark overflow-x-hidden">
+    <!-- Base SEO Properties -->
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Muni Moldes" />
+    
+    <!-- Favicon Placeholders -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              canvas: '#FDFCF8', // Pearl / Warm Paper
+              slate: {
+                main: '#3F3538', // Warm Dark Grey (instead of cold blue-grey)
+                light: '#75686B', // Warm Medium Grey
+              },
+              brand: {
+                50: '#FDF2F4',  // Rose Water
+                100: '#FCE7EA', // Pale Blush
+                200: '#F5C0C9', // Soft Pink
+                500: '#C58595', // Dusty Rose (Elements)
+                600: '#9F4A5E', // Marsala (Primary Brand)
+                700: '#8A3246', // Deep Rose
+                900: '#571F2D', // Bordeaux (Strong Text/BG)
+              },
+              accent: {
+                coral: '#E08D79', // Terracotta / Soft Clay (Harmonious with Marsala)
+                coralHover: '#D17560',
+              },
+              sand: '#F2EFE9', // Footer (Greige)
+            },
+            boxShadow: {
+              'soft': '0 10px 40px -10px rgba(87, 31, 45, 0.06)', // Tinted shadow (Bordeaux)
+              'glow': '0 0 25px rgba(197, 133, 149, 0.3)', // Dusty Rose glow
+              'coral': '0 10px 20px -10px rgba(224, 141, 121, 0.4)', // Terracotta shadow
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-canvas text-slate-main antialiased selection:bg-brand-100 selection:text-brand-900">
     <div id="root"></div>
-    <!-- Aponta para o arquivo principal dentro de SRC -->
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>
