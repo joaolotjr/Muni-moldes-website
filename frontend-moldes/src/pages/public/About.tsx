@@ -1,6 +1,7 @@
 import React from 'react';
-import { Shield, Users, Heart, Hexagon } from 'lucide-react';
+import { Shield, Users, Heart } from 'lucide-react';
 import { SEO } from '../../components/SEO';
+import logo from '../../assets/logo.png';
 
 export const About: React.FC = () => {
   return (
@@ -8,13 +9,11 @@ export const About: React.FC = () => {
       <SEO title="Sobre Nós" description="Conheça a história e os valores da Muni Moldes." />
       
       {/* Header - Soft Warm Pastel */}
-      <div className="bg-orange-50 text-slate-main py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
+      <div className="bg-orange-50 text-slate-main py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
           
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center shadow-soft transform -rotate-6">
-                <Hexagon size={40} className="text-white fill-current" strokeWidth={1} />
-            </div>
+            <img src={logo} alt="Muni Moldes Logo" className="h-44 w-auto" />
             <h1 className="text-4xl md:text-5xl font-bold">Nossa História</h1>
           </div>
           

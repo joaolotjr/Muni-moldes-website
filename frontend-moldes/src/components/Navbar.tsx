@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Hexagon, Phone } from 'lucide-react';
+import { Menu, X, Phone } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,9 +36,7 @@ export const Navbar: React.FC = () => {
           {/* Logo - Desabrochar */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="text-brand-600 transition-transform duration-500 group-hover:rotate-180">
-                 <Hexagon size={28} strokeWidth={1.5} className="fill-brand-100" />
-              </div>
+              <img src={logo} alt="Muni Moldes Logo" className="h-24 w-auto" />
               <span className="font-bold text-xl text-slate-main tracking-tight">MUNI MOLDES</span>
             </Link>
           </div>
