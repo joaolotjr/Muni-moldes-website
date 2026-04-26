@@ -1,129 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import { AdminSidebar } from '../../components/AdminSidebar';
-import { db } from '../../services/db';
-import { type Product } from '../../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Package, Eye, Tag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { api } from '../../services/api';
+import { Package, FolderTree, TrendingUp, Users } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+export function Dashboard() {
+  const [stats, setStats] = useState({
+    products: 0,
+    collections: 0,
+  });
 
   useEffect(() => {
-    setProducts(db.getProducts());
+    // Fetch real counts from API
+    const fetchStats = async () => {
+      try {
+        const [productsRes, collectionsRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/collections')
+        ]);
+        setStats({
+          products: productsRes.data.length,
+          collections: collectionsRes.data.length,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+    fetchStats();
   }, []);
 
-  // Stats Logic
-  const totalProducts = products.length;
-  const activeProducts = products.filter(p => p.active).length;
-  const newProducts = products.filter(p => p.isNew).length;
-
-  // Chart Data Preparation
-  const productsByCollection = products.reduce((acc, curr) => {
-    acc[curr.collection] = (acc[curr.collection] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const barData = Object.keys(productsByCollection).map(key => ({
-    name: key,
-    quantidade: productsByCollection[key]
-  }));
-
-  const pieData = [
-    { name: 'Ativos', value: activeProducts },
-    { name: 'Inativos', value: totalProducts - activeProducts }
+  const statCards = [
+    { name: 'Total de Moldes', value: stats.products, icon: Package, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { name: 'Coleções Ativas', value: stats.collections, icon: FolderTree, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { name: 'Visitas no Catálogo', value: '1.2k', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { name: 'Leads Gerados', value: '48', icon: Users, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];
 
-  const COLORS = ['#0ea5e9', '#94a3b8'];
-
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <AdminSidebar />
-      <div className="ml-64 flex-1 p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+        <p className="text-slate-500">Visão geral do seu catálogo e desempenho.</p>
+      </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-brand-500">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total de Produtos</p>
-                <h3 className="text-3xl font-bold text-gray-900">{totalProducts}</h3>
-              </div>
-              <div className="p-3 bg-brand-50 rounded-full text-brand-600">
-                <Package size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 rounded-xl ${stat.bg}`}>
+                <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
             </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Produtos Ativos</p>
-                <h3 className="text-3xl font-bold text-gray-900">{activeProducts}</h3>
-              </div>
-              <div className="p-3 bg-green-50 rounded-full text-green-600">
-                <Eye size={24} />
-              </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500 mb-1">{stat.name}</p>
+              <h3 className="text-3xl font-bold text-slate-900">{stat.value}</h3>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-500">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Lançamentos</p>
-                <h3 className="text-3xl font-bold text-gray-900">{newProducts}</h3>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-full text-yellow-600">
-                <Tag size={24} />
-              </div>
-            </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 min-h-[400px] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+            <TrendingUp className="w-8 h-8 text-slate-400" />
           </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Produtos por Coleção</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{fontSize: 12}} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Status do Catálogo</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-slate-900">Gráfico de Visitas</h3>
+          <p className="text-slate-500">A integração com o Google Analytics será exibida aqui.</p>
         </div>
       </div>
     </div>
   );
-};
+}

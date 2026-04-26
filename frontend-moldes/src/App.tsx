@@ -1,62 +1,47 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
-import { Home } from './pages/public/Home';
-import { Catalog } from './pages/public/Catalog';
-import { ProductDetail } from './pages/public/ProductDetail';
-import { About } from './pages/public/About';
-import { News } from './pages/public/News';
-import { NewsDetail } from './pages/public/NewsDetail';
-import { Contact } from './pages/public/Contact';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AdminLayout } from './components/layout/AdminLayout';
 import { Login } from './pages/admin/Login';
 import { Dashboard } from './pages/admin/Dashboard';
-import { ProductManager } from './pages/admin/ProductManager';
-import { CollectionManager } from './pages/admin/CollectionManager';
-import { NewsManager } from './pages/admin/NewsManager';
-import { db } from './services/db';
+import { ProductsList } from './pages/admin/ProductsList';
+import { ProductForm } from './pages/admin/ProductForm';
 
+// Placeholder for public pages (Phase 4)
 const PublicLayout = () => (
-  <div className="flex flex-col min-h-screen">
-    <Navbar />
-    <main className="flex-grow">
-      <Outlet />
-    </main>
-    <Footer />
+  <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="text-center">
+      <h1 className="text-4xl font-bold text-slate-900 mb-4">Catálogo Muni Moldes</h1>
+      <p className="text-slate-500">Página pública em construção (Fase 4)...</p>
+    </div>
   </div>
 );
 
-const ProtectedRoute = () => {
-  const isAuth = db.isAuthenticated();
-  return isAuth ? <Outlet /> : <Navigate to="/admin/login" replace />;
-};
-
-const App: React.FC = () => {
+export default function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/catalogo" element={<Catalog />} />
-          <Route path="/catalogo/:slug" element={<ProductDetail />} />
-          <Route path="/sobre" element={<About />} />
-          <Route path="/noticias" element={<News />} />
-          <Route path="/noticias/:slug" element={<NewsDetail />} />
-          <Route path="/contato" element={<Contact />} />
-        </Route>
-
-        {/* Admin Routes */}
+        {/* Public Area */}
+        <Route path="/" element={<PublicLayout />} />
+        
+        {/* Admin Login */}
         <Route path="/admin/login" element={<Login />} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<Dashboard />} />
-          <Route path="/admin/catalogo" element={<ProductManager />} />
-          <Route path="/admin/colecoes" element={<CollectionManager />} />
-          <Route path="/admin/noticias" element={<NewsManager />} />
-        </Route>
-      </Routes>
-    </Router>
-  );
-};
 
-export default App;
+        {/* Admin Area */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="produtos" element={<ProductsList />} />
+          <Route path="produtos/novo" element={<ProductForm />} />
+          <Route path="produtos/:id" element={<ProductForm />} />
+          {/* Placeholder for collections */}
+          <Route path="colecoes" element={
+            <div className="p-8 text-center text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-100">
+              CRUD de Coleções (A implementar)
+            </div>
+          } />
+        </Route>
+
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
