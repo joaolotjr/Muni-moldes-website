@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: senha_segura
       POSTGRES_DB: catalogo_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       # Para persistir os dados do banco fora do container
       - ./pgdata:/var/lib/postgresql/data

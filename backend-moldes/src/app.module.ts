@@ -13,8 +13,8 @@ import { ProductsModule } from './products/products.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost', // Mapped from docker-compose
-      port: 5432,
+      host: '127.0.0.1', // Mapped from docker-compose
+      port: 5433,
       username: 'user_admin',
       password: 'senha_segura',
       database: 'catalogo_db',
