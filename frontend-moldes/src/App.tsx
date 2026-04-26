@@ -4,6 +4,10 @@ import { Login } from './pages/admin/Login';
 import { Dashboard } from './pages/admin/Dashboard';
 import { ProductsList } from './pages/admin/ProductsList';
 import { ProductForm } from './pages/admin/ProductForm';
+import { CollectionsList } from './pages/admin/CollectionsList';
+import { CollectionForm } from './pages/admin/CollectionForm';
+import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 
 // Placeholder for public pages (Phase 4)
 const PublicLayout = () => (
@@ -17,31 +21,32 @@ const PublicLayout = () => (
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Area */}
-        <Route path="/" element={<PublicLayout />} />
-        
-        {/* Admin Login */}
-        <Route path="/admin/login" element={<Login />} />
+    <ToastProvider>
+      <ConfirmProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Area */}
+            <Route path="/" element={<PublicLayout />} />
+            
+            {/* Admin Login */}
+            <Route path="/admin/login" element={<Login />} />
 
-        {/* Admin Area */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="produtos" element={<ProductsList />} />
-          <Route path="produtos/novo" element={<ProductForm />} />
-          <Route path="produtos/:id" element={<ProductForm />} />
-          {/* Placeholder for collections */}
-          <Route path="colecoes" element={
-            <div className="p-8 text-center text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-100">
-              CRUD de Coleções (A implementar)
-            </div>
-          } />
-        </Route>
+            {/* Admin Area */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="produtos" element={<ProductsList />} />
+              <Route path="produtos/novo" element={<ProductForm />} />
+              <Route path="produtos/:id" element={<ProductForm />} />
+              <Route path="colecoes" element={<CollectionsList />} />
+              <Route path="colecoes/nova" element={<CollectionForm />} />
+              <Route path="colecoes/:id" element={<CollectionForm />} />
+            </Route>
 
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ConfirmProvider>
+    </ToastProvider>
   );
 }

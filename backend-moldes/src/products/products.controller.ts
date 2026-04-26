@@ -60,4 +60,10 @@ export class ProductsController {
     const imageUrl = `/uploads/${file.filename}`;
     return this.productsService.addImage(id, imageUrl, isCover === 'true');
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/images/:imageId')
+  removeImage(@Param('imageId') imageId: string) {
+    return this.productsService.removeImage(imageId);
+  }
 }

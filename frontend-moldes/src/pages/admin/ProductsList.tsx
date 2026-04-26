@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export function ProductsList() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
 
   const fetchProducts = async () => {
     try {
@@ -23,14 +27,20 @@ export function ProductsList() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este molde?')) {
-      try {
-        await api.delete(`/products/${id}`);
-        fetchProducts();
-      } catch (error) {
-        alert('Erro ao excluir o molde.');
+    confirm({
+      title: 'Excluir Molde',
+      message: 'Tem certeza que deseja excluir este molde permanentemente?',
+      confirmText: 'Excluir',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/products/${id}`);
+          fetchProducts();
+          showToast('Molde excluído com sucesso.', 'success');
+        } catch (error) {
+          showToast('Erro ao excluir o molde.', 'error');
+        }
       }
-    }
+    });
   };
 
   return (

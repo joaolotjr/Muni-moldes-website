@@ -14,4 +14,13 @@ export class Collection {
 
   @OneToMany(() => Product, (product) => product.collection)
   products: Product[];
+
+  @Column({ type: 'boolean', default: true })
+  is_active: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  active_from: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  active_until: Date;
 }

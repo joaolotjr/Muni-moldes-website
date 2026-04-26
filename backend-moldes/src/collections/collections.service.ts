@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Collection } from './entities/collection.entity';
@@ -10,8 +10,8 @@ export class CollectionsService {
     private collectionsRepository: Repository<Collection>,
   ) {}
 
-  async create(name: string, slug: string): Promise<Collection> {
-    const collection = this.collectionsRepository.create({ name, slug });
+  async create(collectionData: Partial<Collection>): Promise<Collection> {
+    const collection = this.collectionsRepository.create(collectionData);
     return this.collectionsRepository.save(collection);
   }
 
@@ -27,15 +27,25 @@ export class CollectionsService {
     return collection;
   }
 
-  async update(id: string, name: string, slug: string): Promise<Collection> {
-    const collection = await this.findOne(id);
-    collection.name = name;
-    collection.slug = slug;
-    return this.collectionsRepository.save(collection);
+  async update(id: string, collectionData: Partial<Collection>): Promise<Collection> {
+    await this.collectionsRepository.update(id, collectionData);
+    return this.findOne(id);
   }
 
   async remove(id: string): Promise<void> {
-    const collection = await this.findOne(id);
+    const collection = await this.collectionsRepository.findOne({ 
+      where: { id },
+      relations: ['products']
+    });
+    
+    if (!collection) {
+      throw new NotFoundException(`Collection #${id} not found`);
+    }
+
+    if (collection.products && collection.products.length > 0) {
+      throw new BadRequestException('Não é possível excluir uma coleção que possui produtos vinculados.');
+    }
+
     await this.collectionsRepository.remove(collection);
   }
 }

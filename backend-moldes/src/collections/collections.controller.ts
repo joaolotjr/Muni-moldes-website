@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nes
 import { CollectionsService } from './collections.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+import { Collection } from './entities/collection.entity';
+
 @Controller('collections')
 export class CollectionsController {
   constructor(private readonly collectionsService: CollectionsService) {}
@@ -18,14 +20,14 @@ export class CollectionsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() body: { name: string; slug: string }) {
-    return this.collectionsService.create(body.name, body.slug);
+  create(@Body() body: Partial<Collection>) {
+    return this.collectionsService.create(body);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: { name: string; slug: string }) {
-    return this.collectionsService.update(id, body.name, body.slug);
+  update(@Param('id') id: string, @Body() body: Partial<Collection>) {
+    return this.collectionsService.update(id, body);
   }
 
   @UseGuards(JwtAuthGuard)

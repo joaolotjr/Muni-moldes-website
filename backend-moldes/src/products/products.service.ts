@@ -60,4 +60,8 @@ export class ProductsService {
     });
     return this.productImagesRepository.save(image);
   }
+
+  async removeImage(imageId: string): Promise<void> {
+    await this.productImagesRepository.delete(imageId);
+  }
 }
