@@ -8,16 +8,12 @@ import { CollectionsList } from './pages/admin/CollectionsList';
 import { CollectionForm } from './pages/admin/CollectionForm';
 import { ToastProvider } from './contexts/ToastContext';
 import { ConfirmProvider } from './contexts/ConfirmContext';
-
-// Placeholder for public pages (Phase 4)
-const PublicLayout = () => (
-  <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-    <div className="text-center">
-      <h1 className="text-4xl font-bold text-slate-900 mb-4">Catálogo Muni Moldes</h1>
-      <p className="text-slate-500">Página pública em construção (Fase 4)...</p>
-    </div>
-  </div>
-);
+import { PublicLayout } from './components/layout/PublicLayout';
+import { Home } from './pages/public/Home';
+import { Catalog } from './pages/public/Catalog';
+import { ProductDetails } from './pages/public/ProductDetails';
+import { About } from './pages/public/About';
+import { Contact } from './pages/public/Contact';
 
 export default function App() {
   return (
@@ -26,7 +22,13 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             {/* Public Area */}
-            <Route path="/" element={<PublicLayout />} />
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<Home />} />
+              <Route path="catalogo" element={<Catalog />} />
+              <Route path="molde/:slug" element={<ProductDetails />} />
+              <Route path="sobre" element={<About />} />
+              <Route path="contato" element={<Contact />} />
+            </Route>
             
             {/* Admin Login */}
             <Route path="/admin/login" element={<Login />} />

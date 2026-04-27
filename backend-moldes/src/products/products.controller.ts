@@ -11,8 +11,8 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findAll(@Query('collection') collectionSlug?: string) {
-    return this.productsService.findAll(collectionSlug);
+  findAll(@Query('collection') collectionSlug?: string, @Query('public') isPublic?: string) {
+    return this.productsService.findAll(collectionSlug, isPublic === 'true');
   }
 
   @Get(':slug')

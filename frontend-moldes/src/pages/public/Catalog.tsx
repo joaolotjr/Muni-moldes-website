@@ -1,213 +1,138 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Filter, X } from 'lucide-react';
-import { db } from '../../services/db';
-import { type Product } from '../../types';
-import { SEO } from '../../components/SEO';
+import { api } from '../../services/api';
+import { Search, FolderTree, Image as ImageIcon } from 'lucide-react';
 
-export const Catalog: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [collections, setCollections] = useState<string[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
-  // Filter States
-  const [search, setSearch] = useState(searchParams.get('q') || '');
-  const [selectedCollections, setSelectedCollections] = useState<string[]>(
-    searchParams.get('c')?.split(',').filter(Boolean) || []
-  );
-
-  useEffect(() => {
-    // Load initial data
-    const all = db.getProducts().filter(p => p.active);
-    setProducts(all);
-    setCollections(db.getCollections());
-  }, []);
+  const activeCollection = searchParams.get('colecao') || '';
 
   useEffect(() => {
-    // Apply filters
-    let result = products;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [collectionsRes, productsRes] = await Promise.all([
+          api.get('/collections?public=true'),
+          api.get(`/products?public=true${activeCollection ? `&collection=${activeCollection}` : ''}`)
+        ]);
+        setCollections(collectionsRes.data);
+        setProducts(productsRes.data);
+      } catch (error) {
+        console.error('Error fetching catalog data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Search
-    if (search) {
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) || 
-        p.description.toLowerCase().includes(search.toLowerCase())
-      );
-    }
+    fetchData();
+  }, [activeCollection]);
 
-    // Collections
-    if (selectedCollections.length > 0) {
-      result = result.filter(p => selectedCollections.includes(p.collection));
-    }
-
-    setFilteredProducts(result);
-
-    // Update URL
-    const params: any = {};
-    if (search) params.q = search;
-    if (selectedCollections.length > 0) params.c = selectedCollections.join(',');
-    setSearchParams(params);
-
-  }, [products, search, selectedCollections, setSearchParams]);
-
-  const toggleCollection = (col: string) => {
-    setSelectedCollections(prev => 
-      prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
-    );
-  };
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <>
-      <SEO title="Catálogo de Produtos" description="Explore nossa coleção completa de moldes de silicone." />
-      
-      <div className="bg-canvas min-h-screen py-12 pt-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row gap-12">
-            
-            {/* Sidebar Filters - Desktop */}
-            <div className="hidden md:block w-64 flex-shrink-0">
-              <div className="sticky top-28">
-                <h3 className="font-bold text-slate-main text-lg mb-6 flex items-center gap-2">
-                  <Filter size={20} /> Filtros
-                </h3>
-                
-                <div className="mb-8">
-                  <h4 className="font-semibold text-sm text-slate-light mb-4 uppercase tracking-wider">Coleções</h4>
-                  <div className="space-y-3">
-                    {collections.map(col => (
-                      <label key={col} className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                          selectedCollections.includes(col) ? 'bg-accent-coral border-accent-coral' : 'border-gray-300 bg-white group-hover:border-accent-coral'
-                        }`}>
-                          {selectedCollections.includes(col) && <div className="w-2 h-2 bg-white rounded-full" />}
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedCollections.includes(col)}
-                          onChange={() => toggleCollection(col)}
-                          className="hidden"
-                        />
-                        <span className={`text-sm ${selectedCollections.includes(col) ? 'text-slate-main font-medium' : 'text-slate-light'}`}>{col}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedCollections.length > 0 && (
-                  <button 
-                    onClick={() => setSelectedCollections([])}
-                    className="text-sm text-accent-coral hover:text-accent-coralHover font-medium underline"
-                  >
-                    Limpar filtros
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1">
-              {/* Header & Mobile Search/Filter Toggle */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
-                <div className="relative w-full">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* Sidebar Filters */}
+          <aside className="w-full lg:w-64 flex-shrink-0">
+            <div className="sticky top-28 space-y-8">
+              <div>
+                <h3 className="font-heading font-bold text-munidark uppercase tracking-wider mb-4">Buscar</h3>
+                <div className="relative">
                   <input
                     type="text"
-                    placeholder="O que você procura?"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-100 focus:shadow-md transition-shadow text-slate-main placeholder-gray-400"
+                    placeholder="Nome do molde..."
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-munipink/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all font-sans text-munidark"
                   />
+                  <Search className="w-4 h-4 text-munidark/40 absolute left-3.5 top-3.5" />
                 </div>
-                
-                <button 
-                  onClick={() => setIsMobileFiltersOpen(true)}
-                  className="md:hidden w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white rounded-2xl shadow-sm text-slate-main font-medium"
-                >
-                  <Filter size={18} /> Filtrar
-                </button>
               </div>
 
-              {/* Product Grid */}
-              {filteredProducts.length === 0 ? (
-                <div className="text-center py-20 bg-white/50 rounded-3xl border border-dashed border-gray-300">
-                  <h3 className="text-lg font-medium text-slate-main">Nenhum produto encontrado</h3>
-                  <p className="text-slate-light mt-2">Tente ajustar seus filtros de busca.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredProducts.map(product => (
-                    <div key={product.id} className="group bg-white rounded-3xl p-4 shadow-soft hover:shadow-glow transition-all duration-300 hover:-translate-y-1">
-                      <Link to={`/catalogo/${product.slug}`}>
-                        <div className="aspect-square bg-canvas rounded-2xl overflow-hidden mb-4 relative">
-                          <img 
-                            src={product.images[0]} 
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
-                          />
-                          {product.isNew && (
-                            <span className="absolute top-3 left-3 bg-white/90 backdrop-blur text-brand-600 text-[10px] font-bold px-2 py-1 rounded-full">
-                              NOVO
-                            </span>
-                          )}
-                        </div>
-                        <div className="px-2 pb-2">
-                          <span className="text-xs font-bold text-brand-500 uppercase tracking-wider">{product.collection}</span>
-                          <h3 className="text-lg font-bold text-slate-main mt-1 mb-2 leading-tight group-hover:text-accent-coral transition-colors">{product.name}</h3>
-                          <div className="flex items-center justify-between mt-4">
-                            <span className="text-slate-light text-sm bg-gray-50 px-2 py-1 rounded-md">{product.dimensions}</span>
-                            <span className="font-bold text-slate-main text-lg">R$ {product.price.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
+              <div>
+                <h3 className="font-heading font-bold text-munidark uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <FolderTree className="w-4 h-4 text-munigreen" /> Coleções
+                </h3>
+                <ul className="space-y-1 font-sans">
+                  <li>
+                    <button
+                      onClick={() => setSearchParams({})}
+                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!activeCollection ? 'bg-munigreen text-white shadow-md shadow-munigreen/20' : 'text-munidark/70 hover:bg-munipink/10 hover:text-munidark'}`}
+                    >
+                      Todos os Moldes
+                    </button>
+                  </li>
+                  {collections.map(c => (
+                    <li key={c.id}>
+                      <button
+                        onClick={() => setSearchParams({ colecao: c.slug })}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeCollection === c.slug ? 'bg-munigreen text-white shadow-md shadow-munigreen/20' : 'text-munidark/70 hover:bg-munipink/10 hover:text-munidark'}`}
+                      >
+                        {c.name}
+                      </button>
+                    </li>
                   ))}
-                </div>
-              )}
+                </ul>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </aside>
 
-      {/* Mobile Filters Modal */}
-      {isMobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-end">
-          <div className="w-80 bg-white h-full p-6 overflow-y-auto shadow-2xl">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-xl text-slate-main">Filtros</h3>
-              <button onClick={() => setIsMobileFiltersOpen(false)} className="text-slate-light hover:text-slate-main">
-                <X size={24} />
-              </button>
+          {/* Product Grid */}
+          <main className="flex-1">
+            <div className="mb-8 bg-white p-8 rounded-3xl border border-munipink/10 shadow-sm">
+              <h1 className="font-heading text-3xl font-bold text-munidark tracking-tight">Catálogo de Moldes</h1>
+              <p className="font-sans text-munidark/70 mt-2">
+                {activeCollection 
+                  ? `Exibindo produtos da coleção: ${collections.find(c => c.slug === activeCollection)?.name || activeCollection}` 
+                  : 'Navegue por toda nossa coleção de moldes de alta qualidade.'}
+              </p>
             </div>
-            
-            <div className="mb-8">
-              <h4 className="font-semibold text-slate-main mb-4">Coleções</h4>
-              <div className="space-y-4">
-                {collections.map(col => (
-                  <label key={col} className="flex items-center gap-3">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedCollections.includes(col)}
-                      onChange={() => toggleCollection(col)}
-                      className="w-5 h-5 rounded text-accent-coral border-gray-300 focus:ring-accent-coral"
-                    />
-                    <span className="text-slate-600">{col}</span>
-                  </label>
+
+            {loading ? (
+              <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-munigreen border-t-transparent rounded-full animate-spin"></div></div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-munipink/10 p-16 text-center shadow-sm">
+                <Search className="w-12 h-12 text-munidark/20 mx-auto mb-4" />
+                <h3 className="font-heading text-xl font-bold text-munidark mb-2">Nenhum molde encontrado</h3>
+                <p className="font-sans text-munidark/60 max-w-md mx-auto">Não encontramos nenhum molde correspondente à sua busca ou filtro atual.</p>
+                <button onClick={() => {setSearch(''); setSearchParams({});}} className="mt-6 text-munipink font-bold hover:text-[#a67c79]">Limpar filtros</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                {filteredProducts.map((product) => (
+                  <Link key={product.id} to={`/molde/${product.slug}`} className="group bg-white rounded-[2rem] border border-munipink/10 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-munipink/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                    <div className="aspect-square bg-munibg relative overflow-hidden">
+                      {product.images && product.images.length > 0 ? (
+                        <img src={`http://localhost:3333${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-munidark/30"><ImageIcon className="w-8 h-8 opacity-50" /></div>
+                      )}
+                    </div>
+                    <div className="p-4 sm:p-6 flex flex-col flex-1">
+                      <h3 className="font-heading font-bold text-munidark text-lg leading-tight mb-2 group-hover:text-munigreen transition-colors line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <p className="font-sans text-xs sm:text-sm text-munidark/60 mb-5">{product.dimensions || 'Dimensões não informadas'}</p>
+                      <div className="mt-auto">
+                        <span className="inline-flex items-center justify-center w-full bg-munilight text-munigreen text-sm font-bold py-3 rounded-xl group-hover:bg-munigreen group-hover:text-white transition-colors">
+                          Detalhes
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
-            </div>
-
-            <button 
-              onClick={() => setIsMobileFiltersOpen(false)}
-              className="w-full bg-slate-main text-white py-4 rounded-xl font-bold"
-            >
-              Ver Resultados ({filteredProducts.length})
-            </button>
-          </div>
+            )}
+          </main>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
-};
+}

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -9,8 +9,8 @@ export class CollectionsController {
   constructor(private readonly collectionsService: CollectionsService) {}
 
   @Get()
-  findAll() {
-    return this.collectionsService.findAll();
+  findAll(@Query('public') isPublic?: string) {
+    return this.collectionsService.findAll(isPublic === 'true');
   }
 
   @Get(':id')

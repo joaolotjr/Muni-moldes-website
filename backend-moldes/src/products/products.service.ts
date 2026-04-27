@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
 
@@ -18,13 +18,29 @@ export class ProductsService {
     return this.productsRepository.save(product);
   }
 
-  async findAll(collectionSlug?: string): Promise<Product[]> {
+  async findAll(collectionSlug?: string, isPublic: boolean = false): Promise<Product[]> {
     const query = this.productsRepository.createQueryBuilder('product')
       .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.collection', 'collection');
 
     if (collectionSlug) {
-      query.where('collection.slug = :slug', { slug: collectionSlug });
+      query.andWhere('collection.slug = :slug', { slug: collectionSlug });
+    }
+
+    if (isPublic) {
+      query.andWhere('product.is_active = :isActive', { isActive: true });
+      query.andWhere(
+        new Brackets(qb => {
+          qb.where('product.active_from IS NULL')
+            .orWhere('product.active_from <= :now', { now: new Date() });
+        })
+      );
+      query.andWhere(
+        new Brackets(qb => {
+          qb.where('product.active_until IS NULL')
+            .orWhere('product.active_until >= :now', { now: new Date() });
+        })
+      );
     }
 
     return query.getMany();

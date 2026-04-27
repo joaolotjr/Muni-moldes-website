@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { Collection } from './entities/collection.entity';
 
 @Injectable()
@@ -15,8 +15,26 @@ export class CollectionsService {
     return this.collectionsRepository.save(collection);
   }
 
-  async findAll(): Promise<Collection[]> {
-    return this.collectionsRepository.find();
+  async findAll(isPublic: boolean = false): Promise<Collection[]> {
+    const query = this.collectionsRepository.createQueryBuilder('collection');
+
+    if (isPublic) {
+      query.andWhere('collection.is_active = :isActive', { isActive: true });
+      query.andWhere(
+        new Brackets(qb => {
+          qb.where('collection.active_from IS NULL')
+            .orWhere('collection.active_from <= :now', { now: new Date() });
+        })
+      );
+      query.andWhere(
+        new Brackets(qb => {
+          qb.where('collection.active_until IS NULL')
+            .orWhere('collection.active_until >= :now', { now: new Date() });
+        })
+      );
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<Collection> {

@@ -8,15 +8,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        'munipink': '#DC96A0', // Rosa Principal (CTA, Destaque)
-        'munigreen': '#64968C', // Verde Água (Acento)
-        'munidark': '#322d2d', // Marrom/Cinza Escuro (Títulos, Textos)
-        'munilight': '#F5F0E6', // Bege/Off-White (Fundo Suave)
+        'munipink': '#bd8d8a', // Rosa/Salmão do logo
+        'munigreen': '#7a9f97', // Verde Sálvia do logo
+        'munidark': '#4a5568', // Marrom/Cinza escuro para textos
+        'munibg': '#faf8f5', // Fundo bege clarinho
       },
-      // Adicione fontes customizadas aqui, se desejar (ex: font-serif, font-sans)
       fontFamily: {
-        'sans': ['Lato', 'Open Sans', 'sans-serif'], // Fonte para corpo do texto
-        'heading': ['Montserrat', 'serif'], // Fonte para títulos (ajuste conforme sua preferência)
+        'sans': ['Montserrat', 'sans-serif'],
+        'heading': ['"Playfair Display"', 'serif'],
       }
     },
   },

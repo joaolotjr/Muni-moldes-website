@@ -1,176 +1,182 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Box, Droplet } from 'lucide-react';
-import { db } from '../../services/db';
-import { type Product } from '../../types';
-import { SEO } from '../../components/SEO';
+import { api } from '../../services/api';
+import { ArrowRight, Star, ShoppingBag, FolderTree } from 'lucide-react';
 
-export const Home: React.FC = () => {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+export function Home() {
+  const [collections, setCollections] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const all = db.getProducts();
-    setFeaturedProducts(all.filter(p => p.active).slice(0, 4));
+    const fetchData = async () => {
+      try {
+        const [collectionsRes, productsRes] = await Promise.all([
+          api.get('/collections?public=true'),
+          api.get('/products?public=true')
+        ]);
+        setCollections(collectionsRes.data.slice(0, 4)); // Show top 4 collections
+        
+        // Sort products by id descending (assuming newer = higher id or just take last 8)
+        // Since we have created_at in the backend, we should sort there ideally, 
+        // but for now let's just reverse the array and take 8
+        const recentProducts = [...productsRes.data].reverse().slice(0, 8);
+        setProducts(recentProducts);
+      } catch (error) {
+        console.error('Error fetching data for home', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
-    <>
-      <SEO title="Início" description="Muni Moldes - Dê vida à sua arte com precisão." url="/" />
-      
-      {/* Hero Section - Soft Lab Concept */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-canvas pt-20">
-        {/* Background Image with Focus Blur */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://picsum.photos/seed/muni_hero_soft/1920/1080" 
-            alt="Atelier Muni Moldes" 
-            className="w-full h-full object-cover opacity-80"
-          />
-          {/* Organic Gradient Mask Overlay - Updated color to match new Palette (Pearl/#FDFCF8) */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FDFCF8] via-[#FDFCF8]/90 to-transparent sm:w-[70%]"></div>
-        </div>
-
-        {/* Decorative Organic Blob */}
-        <div className="absolute -left-20 top-20 w-[600px] h-[600px] bg-brand-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="max-w-2xl">
-            <span className="inline-block py-1 px-3 rounded-full bg-brand-100 text-brand-600 text-xs font-bold tracking-wider mb-6">
-              NOVA COLEÇÃO DISPONÍVEL
-            </span>
-            <h1 className="text-5xl md:text-7xl font-bold text-slate-main mb-6 leading-tight tracking-tight">
-              Dê vida à sua arte <span className="text-brand-600">com precisão.</span>
+    <div className="flex-1 animate-in fade-in duration-700 bg-munibg">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-munilight py-20 sm:py-32 border-b border-munipink/10">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/noisy-grid.png')] opacity-10 mix-blend-multiply"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-munigreen rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-munipink rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-blob animation-delay-2000"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="max-w-2xl flex-1 text-center md:text-left">
+            <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-bold text-munidark tracking-tight leading-tight mb-6">
+              Crie Magia com Nossos <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-munipink to-munigreen">
+                Moldes Artesanais
+              </span>
             </h1>
-            <p className="text-lg md:text-xl text-slate-light mb-10 leading-relaxed max-w-lg">
-              Moldes de silicone premium para confeitaria e artesanato. Durabilidade para sua produção, magia no resultado.
+            <p className="font-sans text-lg sm:text-xl text-munidark/80 mb-8 leading-relaxed max-w-xl mx-auto md:mx-0">
+              Sua criatividade começa aqui. Transforme sua confeitaria ou artesanato com detalhes perfeitos e qualidade incomparável.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link 
-                to="/catalogo" 
-                className="bg-accent-coral text-white px-8 py-4 rounded-full font-bold text-center transition-all shadow-coral hover:shadow-lg active:scale-95 transform hover:-translate-y-1"
-              >
-                Ver Catálogo
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <Link to="/catalogo" className="inline-flex items-center justify-center gap-2 bg-munipink hover:bg-[#a67c79] text-white px-8 py-4 rounded-full font-bold transition-all shadow-xl shadow-munipink/20 hover:-translate-y-0.5 font-sans">
+                <ShoppingBag className="w-5 h-5" />
+                Ver Produtos
               </Link>
+            </div>
+          </div>
+          
+          <div className="flex-1 hidden md:block">
+            <div className="relative aspect-square w-full max-w-md mx-auto">
+              <div className="absolute inset-0 bg-munigreen/10 rounded-full animate-pulse blur-2xl"></div>
+              <div className="relative h-full w-full rounded-full border-4 border-white shadow-2xl overflow-hidden bg-munibg flex items-center justify-center">
+                <div className="text-munidark/30 text-center p-6 font-sans text-sm">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-2 opacity-50" />
+                  [Espaço Reservado para<br/>Foto/Vídeo de Alta Qualidade]
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Categories Section - Neumorphic Cards */}
-      <section className="py-24 bg-canvas relative z-20 -mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Card 1 */}
-            <div className="group bg-white rounded-3xl p-8 shadow-soft hover:shadow-glow transition-all duration-500 transform hover:-translate-y-2 border border-white">
-              <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 mb-6 group-hover:bg-brand-100 transition-colors">
-                <Sparkles size={32} strokeWidth={1.5} />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-main mb-3">Confeitaria</h3>
-              <p className="text-slate-light mb-6">Detalhes perfeitos para chocolates e pastas de açúcar.</p>
-              <Link to="/catalogo?c=Natal" className="inline-flex items-center text-accent-coral font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Ver Produtos <ArrowRight size={18} className="ml-2" />
-              </Link>
-            </div>
-
-            {/* Card 2 */}
-            <div className="group bg-white rounded-3xl p-8 shadow-soft hover:shadow-glow transition-all duration-500 transform hover:-translate-y-2 border border-white">
-              <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 mb-6 group-hover:bg-brand-100 transition-colors">
-                <Box size={32} strokeWidth={1.5} />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-main mb-3">Artesanato</h3>
-              <p className="text-slate-light mb-6">Resistência ideal para resina, gesso e cimento.</p>
-              <Link to="/catalogo?c=Geométricos" className="inline-flex items-center text-accent-coral font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Ver Produtos <ArrowRight size={18} className="ml-2" />
-              </Link>
-            </div>
-
-            {/* Card 3 */}
-            <div className="group bg-white rounded-3xl p-8 shadow-soft hover:shadow-glow transition-all duration-500 transform hover:-translate-y-2 border border-white">
-              <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 mb-6 group-hover:bg-brand-100 transition-colors">
-                <Droplet size={32} strokeWidth={1.5} />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-main mb-3">Saboaria</h3>
-              <p className="text-slate-light mb-6">Acabamento liso e desmoldagem fácil para sabonetes.</p>
-              <Link to="/catalogo?c=Florais" className="inline-flex items-center text-accent-coral font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Ver Produtos <ArrowRight size={18} className="ml-2" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Collection */}
+      {/* Featured Collections */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl font-bold text-slate-main">Destaques da Coleção</h2>
-              <p className="text-slate-light mt-2">Os moldes mais procurados do momento</p>
+              <h2 className="font-heading text-3xl font-bold text-munidark tracking-tight">Principais Categorias</h2>
+              <p className="font-sans text-munidark/70 mt-2">Encontre o molde perfeito para a sua data comemorativa ou projeto.</p>
             </div>
-            <Link to="/catalogo" className="hidden md:flex items-center text-brand-600 font-semibold hover:text-brand-900 transition-colors">
-              Ver tudo <ArrowRight size={20} className="ml-2" />
+            <Link to="/catalogo" className="hidden sm:flex items-center gap-2 text-munigreen font-bold hover:text-[#5c8078] transition-colors group">
+              Ver todas
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="group">
-                <Link to={`/catalogo/${product.slug}`}>
-                  <div className="aspect-square bg-canvas rounded-3xl overflow-hidden mb-4 relative">
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      loading="lazy"
-                    />
-                    {product.isNew && (
-                      <span className="absolute top-4 left-4 bg-white/90 backdrop-blur text-brand-600 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                        NOVO
-                      </span>
+          {loading ? (
+            <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-munigreen border-t-transparent rounded-full animate-spin"></div></div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {collections.map((collection) => (
+                <Link key={collection.id} to={`/catalogo?colecao=${collection.slug}`} className="group relative overflow-hidden rounded-[2rem] bg-munibg aspect-[4/3] flex items-center justify-center border border-munipink/10 hover:border-munipink/40 transition-colors shadow-sm hover:shadow-lg hover:shadow-munipink/5">
+                  <div className="absolute inset-0 bg-gradient-to-br from-munigreen/5 to-munipink/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="text-center z-10 p-6">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 border border-munipink/10">
+                      <FolderTree className="w-8 h-8 text-munigreen" />
+                    </div>
+                    <h3 className="font-heading text-lg font-bold text-munidark">{collection.name}</h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* About Section Snippet */}
+      <section className="py-24 bg-munibg border-y border-munipink/10 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="font-heading text-3xl font-bold text-munidark mb-6">Feito com Paixão e Detalhes</h2>
+            <p className="font-sans text-lg text-munidark/80 leading-relaxed mb-8">
+              A Muni Moldes nasceu do amor de Mariluci pela confeitaria. Nossa missão é criar moldes artesanais de altíssima qualidade que facilitam o seu trabalho e garantem resultados perfeitos, transformando doces e artesanatos em verdadeiras obras de arte.
+            </p>
+            <Link to="/sobre" className="inline-flex items-center gap-2 text-munigreen font-bold border-b-2 border-transparent hover:border-munigreen transition-all pb-1">
+              Ler nossa história completa
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Latest Products */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-end mb-12">
+            <div>
+              <h2 className="font-heading text-3xl font-bold text-munidark tracking-tight">Novidades e Lançamentos</h2>
+              <p className="font-sans text-munidark/70 mt-2">Os moldes mais recentes saindo da nossa fábrica.</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-munigreen border-t-transparent rounded-full animate-spin"></div></div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+              {products.map((product) => (
+                <Link key={product.id} to={`/molde/${product.slug}`} className="group bg-white rounded-[2rem] border border-munipink/10 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-munipink/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                  <div className="aspect-square bg-munibg relative overflow-hidden">
+                    {product.images && product.images.length > 0 ? (
+                      <img src={`http://localhost:3333${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-munidark/30 bg-munilight">Sem Foto</div>
+                    )}
+                    {product.collection && (
+                      <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
+                        <span className="bg-white/90 backdrop-blur-sm text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full text-munipink shadow-sm uppercase tracking-wider">
+                          {product.collection.name}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">{product.collection}</span>
-                    <h3 className="text-lg font-bold text-slate-main mt-1 group-hover:text-accent-coral transition-colors">{product.name}</h3>
-                    <p className="text-slate-light text-sm mt-1">{product.dimensions}</p>
-                    <div className="mt-3 font-medium text-slate-main">R$ {product.price.toFixed(2)}</div>
+                  <div className="p-4 sm:p-6 flex flex-col flex-1">
+                    <h3 className="font-heading font-bold text-munidark text-lg leading-tight mb-2 group-hover:text-munigreen transition-colors line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="font-sans text-xs sm:text-sm text-munidark/60 mb-5">{product.dimensions || 'Dimensões não informadas'}</p>
+                    <div className="mt-auto">
+                      <span className="inline-flex items-center justify-center w-full bg-munilight text-munigreen text-sm font-bold py-3 rounded-xl group-hover:bg-munigreen group-hover:text-white transition-colors">
+                        Ver Detalhes
+                      </span>
+                    </div>
                   </div>
                 </Link>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           
-          <div className="mt-12 text-center md:hidden">
-            <Link to="/catalogo" className="inline-flex items-center text-brand-600 font-semibold">
-              Ver catálogo completo <ArrowRight size={20} className="ml-2" />
+          <div className="mt-16 text-center">
+            <Link to="/catalogo" className="inline-flex items-center gap-2 bg-white border border-munipink/20 hover:border-munipink hover:bg-munipink/5 text-munidark hover:text-munipink px-8 py-4 rounded-full font-bold transition-all">
+              Ver Todos os Moldes
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
       </section>
-
-      {/* About Teaser */}
-      <section className="py-20 bg-canvas overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-brand-600 rounded-[2.5rem] p-12 md:p-24 relative overflow-hidden">
-            {/* Background Texture */}
-            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
-
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Tradição em Qualidade</h2>
-                <p className="text-brand-100 mb-8 leading-relaxed text-lg">
-                  A Muni Moldes nasceu da necessidade de oferecer ferramentas que unissem durabilidade e precisão. 
-                  Nossos silicones são selecionados rigorosamente para garantir que sua peça final tenha o acabamento perfeito.
-                </p>
-                <Link to="/sobre" className="inline-block bg-white text-brand-900 px-8 py-3 rounded-full font-bold hover:bg-brand-50 transition-colors shadow-lg">
-                  Conheça nossa história
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
+    </div>
   );
-};
+}
