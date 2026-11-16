@@ -1,153 +1,137 @@
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { PageHeader } from '../../components/public/PageHeader';
 import { InstagramIcon } from '../../components/icons/InstagramIcon';
+import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
+import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
+
+const subjects = [
+  'Orçamento para atacado ou revenda',
+  'Dúvida sobre um molde',
+  'Molde personalizado',
+  'Pedido em andamento',
+  'Outro assunto',
+];
 
 export function Contact() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [form, setForm] = useState({ name: '', company: '', city: '', subject: subjects[0], message: '' });
+
+  const update = (field: keyof typeof form) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => setForm((current) => ({ ...current, [field]: e.target.value }));
+
+  // O formulário monta a mensagem e abre a conversa no WhatsApp da fábrica.
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // In MVP, maybe just alert or redirect to WhatsApp.
-    alert("Função de envio de e-mail em construção. Por favor, contate via WhatsApp!");
+    const lines = [`Olá! Meu nome é ${form.name}.`];
+    if (form.company) lines.push(`Empresa: ${form.company}`);
+    if (form.city) lines.push(`Cidade: ${form.city}`);
+    lines.push(`Assunto: ${form.subject}`, '', form.message);
+    window.open(whatsappLink(lines.join('\n')), '_blank', 'noopener');
   };
 
   return (
-    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <section className="pt-24 pb-12 px-4 text-center">
-        <h1 className="font-heading text-4xl sm:text-5xl font-bold text-munidark tracking-tight mb-4">
-          Fale Conosco
-        </h1>
-        <p className="font-sans text-lg text-munidark/70 max-w-2xl mx-auto">
-          Tem alguma dúvida, precisa de um molde personalizado ou quer falar sobre um pedido? Estamos aqui para ajudar.
-        </p>
-      </section>
+    <div className="flex-1">
+      <PageHeader eyebrow="Contato" title="Fale com a fábrica.">
+        Orçamentos, dúvidas sobre moldes e pedidos em quantidade. O atendimento é feito pelo WhatsApp.
+      </PageHeader>
 
-      <section className="py-12 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-[3rem] border border-munipink/10 shadow-xl shadow-munipink/5 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            
-            {/* Contact Info Sidebar */}
-            <div className="bg-munigreen p-10 lg:p-16 text-white flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-munidark/10 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
-              
-              <div className="relative z-10">
-                <h3 className="font-heading text-3xl font-bold mb-8">Informações de Contato</h3>
-                
-                <div className="space-y-8 font-sans">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1">WhatsApp / Telefone</h4>
-                      <p className="text-white/80">+55 (11) 99999-9999</p>
-                      <p className="text-white/60 text-sm mt-1">Seg a Sex, das 9h às 18h</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1">E-mail</h4>
-                      <p className="text-white/80">contato@munimoldes.com.br</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-1">Endereço Fábrica</h4>
-                      <p className="text-white/80 leading-relaxed">
-                        Rua dos Confeiteiros, 123<br />
-                        Bairro Doce - São Paulo, SP<br />
-                        CEP: 00000-000
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-16 pt-8 border-t border-white/20">
-                  <h4 className="font-bold mb-4 font-sans">Redes Sociais</h4>
-                  <div className="flex gap-4">
-                    <a href="#" className="w-12 h-12 bg-white/20 hover:bg-white hover:text-munigreen transition-colors backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <InstagramIcon className="w-5 h-5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Form */}
-            <div className="p-10 lg:p-16">
-              <h3 className="font-heading text-2xl font-bold text-munidark mb-8">Envie uma mensagem</h3>
-              
-              <form onSubmit={handleSubmit} className="space-y-6 font-sans">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-bold text-munidark mb-2">Seu Nome</label>
-                  <input 
-                    type="text" 
-                    id="name" 
-                    className="w-full px-4 py-3 bg-munibg border border-munipink/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all text-munidark"
-                    placeholder="João Silva"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="email" className="block text-sm font-bold text-munidark mb-2">Seu E-mail</label>
-                  <input 
-                    type="email" 
-                    id="email" 
-                    className="w-full px-4 py-3 bg-munibg border border-munipink/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all text-munidark"
-                    placeholder="joao@exemplo.com"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-bold text-munidark mb-2">Assunto</label>
-                  <select 
-                    id="subject" 
-                    className="w-full px-4 py-3 bg-munibg border border-munipink/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all text-munidark"
-                    required
-                  >
-                    <option value="">Selecione um assunto</option>
-                    <option value="duvida">Dúvida sobre Produto</option>
-                    <option value="personalizado">Orçamento de Molde Personalizado</option>
-                    <option value="pedido">Status do Pedido</option>
-                    <option value="outro">Outro</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label htmlFor="message" className="block text-sm font-bold text-munidark mb-2">Mensagem</label>
-                  <textarea 
-                    id="message" 
-                    rows={4}
-                    className="w-full px-4 py-3 bg-munibg border border-munipink/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all text-munidark resize-none"
-                    placeholder="Como podemos te ajudar hoje?"
-                    required
-                  ></textarea>
-                </div>
-
-                <button 
-                  type="submit"
-                  className="w-full bg-munipink hover:bg-[#a67c79] text-white py-4 px-8 rounded-xl font-bold text-lg transition-all shadow-md shadow-munipink/20 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+      <section className="container-page grid gap-12 py-14 lg:grid-cols-[1fr_1.3fr] lg:gap-16">
+        <div>
+          <p className="eyebrow">Canais de atendimento</p>
+          <dl className="mt-5 border-t border-line">
+            <div className="border-b border-line py-4">
+              <dt className="eyebrow">WhatsApp</dt>
+              <dd className="mt-1">
+                <a
+                  href={whatsappLink(defaultQuoteMessage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-lg font-semibold hover:underline"
                 >
-                  <Send className="w-5 h-5" />
-                  Enviar Mensagem
-                </button>
-              </form>
+                  <WhatsAppIcon className="h-5 w-5 text-sage" />
+                  {site.phoneDisplay}
+                </a>
+                <p className="mt-1 text-sm text-ink-soft">{site.businessHours}</p>
+              </dd>
             </div>
-
-          </div>
+            <div className="border-b border-line py-4">
+              <dt className="eyebrow">E-mail</dt>
+              <dd className="mt-1">
+                <a href={`mailto:${site.email}`} className="font-medium hover:underline">{site.email}</a>
+              </dd>
+            </div>
+            <div className="border-b border-line py-4">
+              <dt className="eyebrow">Instagram</dt>
+              <dd className="mt-1">
+                <a
+                  href={site.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 font-medium hover:underline"
+                >
+                  <InstagramIcon className="h-4 w-4" />
+                  {site.instagramHandle}
+                </a>
+              </dd>
+            </div>
+            <div className="border-b border-line py-4">
+              <dt className="eyebrow">Fábrica</dt>
+              <dd className="mt-1 text-sm leading-relaxed text-ink-soft">
+                {site.addressLines.map((line) => (
+                  <span key={line} className="block">{line}</span>
+                ))}
+              </dd>
+            </div>
+          </dl>
         </div>
-      </section>
 
+        <form onSubmit={handleSubmit} className="border border-line bg-white p-6 sm:p-8">
+          <h2 className="text-xl font-semibold tracking-tight">Envie sua solicitação</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Preencha os dados e a conversa abre no WhatsApp com a mensagem pronta.
+          </p>
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="name" className="field-label">Nome</label>
+              <input id="name" type="text" required value={form.name} onChange={update('name')} className="field" autoComplete="name" />
+            </div>
+            <div>
+              <label htmlFor="company" className="field-label">Empresa <span className="font-normal text-ink-soft">(opcional)</span></label>
+              <input id="company" type="text" value={form.company} onChange={update('company')} className="field" autoComplete="organization" />
+            </div>
+            <div>
+              <label htmlFor="city" className="field-label">Cidade e estado <span className="font-normal text-ink-soft">(opcional)</span></label>
+              <input id="city" type="text" value={form.city} onChange={update('city')} className="field" />
+            </div>
+            <div>
+              <label htmlFor="subject" className="field-label">Assunto</label>
+              <select id="subject" value={form.subject} onChange={update('subject')} className="field">
+                {subjects.map((subject) => (
+                  <option key={subject}>{subject}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="message" className="field-label">Mensagem</label>
+              <textarea
+                id="message"
+                rows={5}
+                required
+                value={form.message}
+                onChange={update('message')}
+                placeholder="Quais moldes e quantidades você precisa?"
+                className="field resize-y"
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="btn btn-quote mt-6 w-full sm:w-auto">
+            <WhatsAppIcon className="h-4 w-4" />
+            Enviar pelo WhatsApp
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

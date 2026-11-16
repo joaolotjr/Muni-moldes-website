@@ -1,24 +1,27 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ImageOff } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
-import { ArrowLeft, Ruler, Weight, MessageCircle, Image as ImageIcon } from 'lucide-react';
+import { whatsappLink } from '../../config/site';
+import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
+import type { Product } from '../../types';
 
 export function ProductDetails() {
   const { slug } = useParams();
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      setLoading(true);
       try {
-        const res = await api.get(`/products/${slug}`);
+        const res = await api.get<Product>(`/products/${slug}`);
         setProduct(res.data);
-        if (res.data.images && res.data.images.length > 0) {
-          setActiveImage(res.data.images[0].image_url);
-        }
+        setActiveImage(res.data.images?.[0]?.image_url ?? null);
       } catch (error) {
         console.error('Error fetching product details', error);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -27,122 +30,130 @@ export function ProductDetails() {
   }, [slug]);
 
   if (loading) {
-    return <div className="flex-1 flex justify-center items-center"><div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    return (
+      <div className="container-page grid flex-1 gap-10 py-12 md:grid-cols-2">
+        <div className="aspect-square animate-pulse border border-line bg-white" />
+        <div className="space-y-4">
+          <div className="h-4 w-32 animate-pulse bg-line" />
+          <div className="h-10 w-3/4 animate-pulse bg-line" />
+          <div className="h-32 animate-pulse bg-line/60" />
+        </div>
+      </div>
+    );
   }
 
   if (!product) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-20 px-4">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">Produto não encontrado</h2>
-        <p className="text-slate-500 mb-8 text-center max-w-md">O molde que você está procurando não existe ou não está mais disponível no catálogo.</p>
-        <Link to="/catalogo" className="text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Voltar ao catálogo
+      <div className="container-page flex flex-1 flex-col items-start justify-center py-24">
+        <p className="eyebrow">Catálogo</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Molde não encontrado</h1>
+        <p className="mt-3 max-w-md text-ink-soft">
+          Este molde não existe ou saiu do catálogo. Veja os modelos disponíveis.
+        </p>
+        <Link to="/catalogo" className="btn btn-primary mt-8">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao catálogo
         </Link>
       </div>
     );
   }
 
-  // Generate WhatsApp link
-  const phoneNumber = "5511999999999";
-  const message = encodeURIComponent(`Olá! Gostaria de solicitar um orçamento para o molde: *${product.name}*.\n\nLink: ${window.location.href}`);
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+  const whatsappUrl = whatsappLink(
+    `Olá! Gostaria de um orçamento para o molde: *${product.name}*.\n\nQuantidade: \n\nLink: ${window.location.href}`,
+  );
+
+  const specs = [
+    { label: 'Linha', value: product.collection?.name },
+    { label: 'Dimensões', value: product.dimensions },
+    { label: 'Peso', value: product.final_weight },
+  ].filter((spec) => spec.value);
 
   return (
-    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
-      <div className="bg-white border-b border-munipink/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/catalogo" className="inline-flex items-center gap-2 text-sm font-bold text-munidark/50 hover:text-munipink transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Voltar ao catálogo
-          </Link>
-        </div>
+    <div className="flex-1 bg-white">
+      <div className="border-b border-line">
+        <nav className="container-page eyebrow flex flex-wrap items-center gap-2 py-4" aria-label="Você está em">
+          <Link to="/" className="hover:text-ink">Início</Link>
+          <span>/</span>
+          <Link to="/catalogo" className="hover:text-ink">Catálogo</Link>
+          {product.collection && (
+            <>
+              <span>/</span>
+              <Link to={`/catalogo?colecao=${product.collection.slug}`} className="hover:text-ink">
+                {product.collection.name}
+              </Link>
+            </>
+          )}
+        </nav>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-[2rem] shadow-sm border border-munipink/10 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            
-            {/* Image Gallery */}
-            <div className="p-6 sm:p-10 border-b md:border-b-0 md:border-r border-munipink/10 bg-munibg flex flex-col">
-              <div className="aspect-square bg-white rounded-[2rem] overflow-hidden border border-munipink/10 mb-6 flex-1 flex items-center justify-center p-4">
-                {activeImage ? (
-                  <img src={`${API_URL}${activeImage}`} alt={product.name} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-munidark/30 flex flex-col items-center">
-                    <ImageIcon className="w-16 h-16 mb-2 opacity-50" />
-                    <span className="text-sm font-sans">Sem foto disponível</span>
-                  </div>
-                )}
+      <div className="container-page grid gap-10 py-10 md:grid-cols-2 lg:gap-16 lg:py-14">
+        {/* Fotos */}
+        <div>
+          <div className="flex aspect-square items-center justify-center border border-line bg-paper">
+            {activeImage ? (
+              <img src={`${API_URL}${activeImage}`} alt={product.name} className="h-full w-full object-contain" />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-ink-soft/50">
+                <ImageOff className="h-8 w-8" strokeWidth={1.5} />
+                <span className="eyebrow text-ink-soft/60">Foto em breve</span>
               </div>
-              
-              {product.images && product.images.length > 1 && (
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                  {product.images.map((img: any) => (
-                    <button 
-                      key={img.id}
-                      onClick={() => setActiveImage(img.image_url)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${activeImage === img.image_url ? 'border-munipink shadow-md scale-105' : 'border-transparent hover:border-munipink/50 opacity-70 hover:opacity-100'}`}
-                    >
-                      <img src={`${API_URL}${img.image_url}`} alt="Thumbnail" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Product Info */}
-            <div className="p-6 sm:p-10 lg:p-14 flex flex-col">
-              {product.collection && (
-                <div className="mb-4">
-                  <span className="inline-block bg-munipink/10 text-munipink text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest font-sans">
-                    {product.collection.name}
-                  </span>
-                </div>
-              )}
-              
-              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-munidark tracking-tight mb-4">
-                {product.name}
-              </h1>
-              
-              <p className="font-sans text-munidark/80 leading-relaxed mb-8 whitespace-pre-wrap flex-1 text-lg">
-                {product.description || 'Nenhuma descrição fornecida para este molde.'}
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 mb-10">
-                <div className="bg-munibg rounded-2xl p-5 border border-munipink/10 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-munigreen flex-shrink-0 shadow-sm border border-munipink/5">
-                    <Ruler className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans text-xs font-bold text-munidark/50 uppercase tracking-wider mb-1">Dimensões</h4>
-                    <p className="font-sans font-bold text-munidark">{product.dimensions || 'N/A'}</p>
-                  </div>
-                </div>
-                <div className="bg-munibg rounded-2xl p-5 border border-munipink/10 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-munipink flex-shrink-0 shadow-sm border border-munipink/5">
-                    <Weight className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans text-xs font-bold text-munidark/50 uppercase tracking-wider mb-1">Peso (Molde)</h4>
-                    <p className="font-sans font-bold text-munidark">{product.final_weight || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <a 
-                href={whatsappUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 px-8 rounded-full font-bold text-lg transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/40 hover:-translate-y-1 flex items-center justify-center gap-3 font-sans"
-              >
-                <MessageCircle className="w-6 h-6" />
-                Solicitar Orçamento
-              </a>
-              <p className="text-center font-sans text-sm text-munidark/40 mt-4">
-                Você será redirecionado para o nosso WhatsApp.
-              </p>
-            </div>
-
+            )}
           </div>
+
+          {product.images.length > 1 && (
+            <div className="mt-3 grid grid-cols-5 gap-3">
+              {product.images.map((img, index) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setActiveImage(img.image_url)}
+                  aria-label={`Ver foto ${index + 1}`}
+                  className={`aspect-square overflow-hidden border bg-paper ${
+                    activeImage === img.image_url ? 'border-ink' : 'border-line hover:border-ink/50'
+                  }`}
+                >
+                  <img src={`${API_URL}${img.image_url}`} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Ficha */}
+        <div>
+          {product.collection && <p className="eyebrow text-rose">{product.collection.name}</p>}
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{product.name}</h1>
+
+          {product.description && (
+            <p className="mt-5 whitespace-pre-wrap leading-relaxed text-ink-soft">{product.description}</p>
+          )}
+
+          {specs.length > 0 && (
+            <dl className="mt-8 border-t border-line">
+              {specs.map((spec) => (
+                <div key={spec.label} className="flex items-baseline justify-between gap-6 border-b border-line py-3">
+                  <dt className="eyebrow">{spec.label}</dt>
+                  <dd className="text-right font-mono text-sm">{spec.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <div className="mt-8 border border-line bg-paper p-5">
+            <p className="font-semibold">Orçamento para este molde</p>
+            <p className="mt-1 text-sm text-ink-soft">
+              Informe a quantidade desejada. Para vários modelos, envie a lista completa na mesma conversa.
+            </p>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote mt-4 w-full">
+              <WhatsAppIcon className="h-4 w-4" />
+              Solicitar orçamento pelo WhatsApp
+            </a>
+          </div>
+
+          <Link to="/catalogo" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-ink">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao catálogo
+          </Link>
         </div>
       </div>
     </div>

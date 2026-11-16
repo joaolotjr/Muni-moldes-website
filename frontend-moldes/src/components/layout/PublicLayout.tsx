@@ -1,149 +1,163 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Phone, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { InstagramIcon } from '../icons/InstagramIcon';
-import { useState, useEffect } from 'react';
+import { WhatsAppIcon } from '../icons/WhatsAppIcon';
+import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
+
+const navItems = [
+  { to: '/catalogo', label: 'Catálogo' },
+  { to: '/sobre', label: 'A fábrica' },
+  { to: '/contato', label: 'Contato' },
+];
 
 export function PublicLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  const quoteUrl = whatsappLink(defaultQuoteMessage);
+
   return (
-    <div className="min-h-screen flex flex-col bg-munibg font-sans selection:bg-munipink/30">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-munipink/20 shadow-sm transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-transparent group-hover:border-munipink/30 transition-all duration-300">
-                <img src="/logo.png" alt="Muni Moldes" className="w-full h-full object-cover bg-white" onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=MM&background=bd8d8a&color=fff';
-                }}/>
-              </div>
-              <span className="font-heading font-bold text-2xl tracking-tight text-munidark transition-colors">
-                Muni Moldes
-              </span>
-            </Link>
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink">
+      {/* Faixa de atendimento */}
+      <div className="bg-ink text-white">
+        <div className="container-page flex h-9 items-center justify-between gap-4 text-xs">
+          <p className="truncate text-white/75">
+            Atendimento a confeitarias, lojistas e revendedores
+          </p>
+          <a
+            href={quoteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex shrink-0 items-center gap-1.5 font-medium hover:underline"
+          >
+            <WhatsAppIcon className="h-3.5 w-3.5" />
+            {site.phoneDisplay}
+          </a>
+        </div>
+      </div>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Home</Link>
-              <Link to="/catalogo" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Catálogo</Link>
-              <Link to="/sobre" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Sobre Nós</Link>
-              <Link to="/contato" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Contato</Link>
-              <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-munipink hover:bg-[#a67c79] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-md shadow-munipink/20 hover:-translate-y-0.5">
-                <MessageCircle className="w-4 h-4" />
-                Orçamento
-              </a>
-            </div>
+      <header className="sticky top-0 z-40 border-b border-line bg-white">
+        <div className="container-page flex h-16 items-center justify-between gap-6">
+          <Link to="/" className="flex items-center gap-3">
+            <img src="/logo.png" alt="" className="h-11 w-11" />
+            <span className="leading-none">
+              <span className="block text-[17px] font-bold tracking-tight">{site.name}</span>
+              <span className="eyebrow mt-1 block text-[10px]">{site.tagline}</span>
+            </span>
+          </Link>
 
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2 text-munidark hover:text-munigreen transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+          <nav className="hidden items-center gap-8 md:flex" aria-label="Principal">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `border-b-2 py-5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'border-ink text-ink'
+                      : 'border-transparent text-ink-soft hover:text-ink'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote py-2.5">
+              Solicitar orçamento
+            </a>
+          </nav>
+
+          <button
+            type="button"
+            className="-mr-2 p-2 md:hidden"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-munipink/20 absolute w-full animate-in slide-in-from-top-4 duration-200">
-            <div className="px-4 pt-2 pb-6 flex flex-col gap-4">
-              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Home</Link>
-              <Link to="/catalogo" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Catálogo de Moldes</Link>
-              <Link to="/sobre" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Sobre Nós</Link>
-              <Link to="/contato" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Contato</Link>
-              <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-munipink text-white p-3 rounded-xl font-medium mt-2">
-                <MessageCircle className="w-5 h-5" />
-                Solicitar Orçamento
+          <nav className="border-t border-line bg-white md:hidden" aria-label="Principal">
+            <div className="container-page flex flex-col py-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-line py-3.5 text-base font-medium"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote mt-4">
+                <WhatsAppIcon className="h-4 w-4" />
+                Solicitar orçamento
               </a>
             </div>
-          </div>
+          </nav>
         )}
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-20 flex flex-col">
+      <main className="flex flex-1 flex-col">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-munipink/20 pt-16 pb-8 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-munibg border border-munipink/20">
-                  <img src="/logo.png" alt="Muni Moldes Logo" className="w-full h-full object-cover" onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}/>
-                </div>
-                <h3 className="text-2xl font-heading font-bold text-munidark tracking-tight">Muni Moldes</h3>
-              </div>
-              <p className="text-munidark/70 text-sm leading-relaxed max-w-xs font-sans">
-                Fábrica de moldes artesanais com qualidade premium. Transformando sua criatividade com detalhes perfeitos.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-munidark font-heading font-semibold text-lg mb-4">Links Rápidos</h4>
-              <ul className="space-y-3">
-                <li><Link to="/catalogo" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Ver Catálogo</Link></li>
-                <li><Link to="/sobre" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Nossa História</Link></li>
-                <li><Link to="/contato" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Fale Conosco</Link></li>
-                <li><Link to="/admin" className="text-munidark/40 hover:text-munipink text-xs transition-colors mt-2 inline-block">Área Restrita</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-munidark font-heading font-semibold text-lg mb-4">Contato</h4>
-              <ul className="space-y-3">
-                <li className="text-munidark/70 text-sm flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-munigreen" />
-                  (11) 99999-9999
-                </li>
-                <li>
-                  <a href="#" className="text-munidark/70 hover:text-munipink text-sm transition-colors flex items-center gap-2 w-fit">
-                    <InstagramIcon className="w-4 h-4" />
-                    @munimoldes
-                  </a>
-                </li>
-              </ul>
-            </div>
+      <footer className="mt-auto bg-ink text-white">
+        <div className="container-page grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <p className="text-lg font-bold tracking-tight">{site.name}</p>
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/65">
+              Fábrica de moldes para chocolate e confeitaria. Atendemos pedidos em quantidade
+              para confeitarias, lojistas e revendedores.
+            </p>
           </div>
-          
-          <div className="border-t border-munipink/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-munidark/50 text-sm">
-              &copy; {new Date().getFullYear()} Muni Moldes. Todos os direitos reservados.
-            </p>
-            <p className="text-munidark/40 text-xs">
-              Criado com excelência.
-            </p>
+
+          <div>
+            <p className="eyebrow text-white/50">Navegação</p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li><Link to="/catalogo" className="text-white/80 hover:text-white">Catálogo de moldes</Link></li>
+              <li><Link to="/sobre" className="text-white/80 hover:text-white">A fábrica</Link></li>
+              <li><Link to="/contato" className="text-white/80 hover:text-white">Contato</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="eyebrow text-white/50">Atendimento</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-white/80">
+              <li>
+                <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white">
+                  <WhatsAppIcon className="h-4 w-4" />
+                  {site.phoneDisplay}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${site.email}`} className="hover:text-white">{site.email}</a>
+              </li>
+              <li>
+                <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white">
+                  <InstagramIcon className="h-4 w-4" />
+                  {site.instagramHandle}
+                </a>
+              </li>
+              <li className="text-white/50">{site.businessHours}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10">
+          <div className="container-page flex flex-col justify-between gap-2 py-5 text-xs text-white/45 sm:flex-row">
+            <p>&copy; {new Date().getFullYear()} {site.name}. Todos os direitos reservados.</p>
+            <Link to="/admin" className="hover:text-white/80">Área restrita</Link>
           </div>
         </div>
       </footer>
-
-      {/* Floating WhatsApp Button */}
-      <a 
-        href="https://wa.me/5511999999999" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 flex items-center justify-center group"
-        aria-label="Fale conosco no WhatsApp"
-      >
-        <MessageCircle className="w-7 h-7" />
-        <span className="absolute right-full mr-4 bg-white text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          Fale com a gente!
-        </span>
-      </a>
     </div>
   );
 }
