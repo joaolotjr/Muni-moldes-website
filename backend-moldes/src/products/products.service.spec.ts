@@ -29,11 +29,11 @@ describe('ProductsService', () => {
     findOne: jest.fn(),
     delete: jest.fn(),
   };
-  const storage = { remove: jest.fn() };
+  const storage = { removeByUrl: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    storage.remove.mockResolvedValue(undefined);
+    storage.removeByUrl.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -120,7 +120,7 @@ describe('ProductsService', () => {
       await service.removeImage('img-1');
 
       expect(images.delete).toHaveBeenCalledWith('img-1');
-      expect(storage.remove).toHaveBeenCalledWith('foto.png');
+      expect(storage.removeByUrl).toHaveBeenCalledWith('/uploads/foto.png');
     });
 
     it('não toca no armazenamento quando a foto não existe', async () => {
@@ -128,22 +128,7 @@ describe('ProductsService', () => {
 
       await service.removeImage('nao-existe');
 
-      expect(storage.remove).not.toHaveBeenCalled();
-    });
-
-    it('não falha se o armazenamento estiver fora do ar', async () => {
-      const consoleError = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => undefined);
-      images.findOne.mockResolvedValue({
-        id: 'img-1',
-        image_url: '/uploads/foto.png',
-      });
-      storage.remove.mockRejectedValue(new Error('S3 indisponível'));
-
-      await expect(service.removeImage('img-1')).resolves.toBeUndefined();
-      expect(images.delete).toHaveBeenCalledWith('img-1');
-      consoleError.mockRestore();
+      expect(storage.removeByUrl).not.toHaveBeenCalled();
     });
   });
 
@@ -159,6 +144,9 @@ describe('ProductsService', () => {
       where: { product_id: 'prod-1' },
     });
     expect(products.delete).toHaveBeenCalledWith('prod-1');
-    expect(storage.remove.mock.calls).toEqual([['a.png'], ['b.jpg']]);
+    expect(storage.removeByUrl.mock.calls).toEqual([
+      ['/uploads/a.png'],
+      ['/uploads/b.jpg'],
+    ]);
   });
 });

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
@@ -6,6 +11,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { randomUUID } from 'crypto';
 import { createReadStream } from 'fs';
 import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -16,6 +22,15 @@ export interface StoredFile {
   contentType?: string;
   contentLength?: number;
 }
+
+// Tipos de imagem aceitos no upload e a extensão gravada para cada um.
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+  'image/avif': '.avif',
+};
 
 const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -62,6 +77,37 @@ export class StorageService {
   static contentTypeFor(key: string): string | undefined {
     const dot = key.lastIndexOf('.');
     return dot === -1 ? undefined : CONTENT_TYPES[key.slice(dot).toLowerCase()];
+  }
+
+  /**
+   * Valida e guarda uma imagem enviada pelo painel. Devolve o endereço público
+   * (/uploads/<arquivo>). O nome vem de um UUID e a extensão do tipo do arquivo,
+   * nunca do nome enviado.
+   */
+  async saveImage(file: Express.Multer.File | undefined): Promise<string> {
+    const extension = file && IMAGE_EXTENSIONS[file.mimetype];
+    if (!file || !extension) {
+      throw new BadRequestException(
+        'Envie uma imagem JPG, PNG, WebP, GIF ou AVIF.',
+      );
+    }
+    const key = `${randomUUID()}${extension}`;
+    await this.save(key, file.buffer, file.mimetype);
+    return `/uploads/${key}`;
+  }
+
+  /** Apaga a imagem de um endereço /uploads/<arquivo>. Uma falha aqui só é registrada. */
+  async removeByUrl(url: string | null | undefined): Promise<void> {
+    if (!url) return;
+    const key = url.replace(/^\/uploads\//, '');
+    try {
+      await this.remove(key);
+    } catch (error) {
+      this.logger.error(
+        `Não foi possível apagar ${key} do armazenamento`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   async save(key: string, body: Buffer, contentType: string): Promise<void> {

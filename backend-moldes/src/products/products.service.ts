@@ -69,7 +69,7 @@ export class ProductsService {
   async remove(id: string): Promise<void> {
     const images = await this.productImagesRepository.find({ where: { product_id: id } });
     await this.productsRepository.delete(id);
-    await Promise.all(images.map((image) => this.deleteStoredFile(image.image_url)));
+    await Promise.all(images.map((image) => this.storage.removeByUrl(image.image_url)));
   }
 
   async addImage(productId: string, imageUrl: string, isCover: boolean = false): Promise<ProductImage> {
@@ -84,16 +84,6 @@ export class ProductsService {
   async removeImage(imageId: string): Promise<void> {
     const image = await this.productImagesRepository.findOne({ where: { id: imageId } });
     await this.productImagesRepository.delete(imageId);
-    if (image) await this.deleteStoredFile(image.image_url);
-  }
-
-  // Apaga o arquivo da foto. Uma falha aqui não desfaz a exclusão no banco.
-  private async deleteStoredFile(imageUrl: string): Promise<void> {
-    const key = imageUrl.replace(/^\/uploads\//, '');
-    try {
-      await this.storage.remove(key);
-    } catch (error) {
-      console.error(`Não foi possível apagar a foto ${key} do armazenamento`, error);
-    }
+    if (image) await this.storage.removeByUrl(image.image_url);
   }
 }

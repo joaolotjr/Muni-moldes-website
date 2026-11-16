@@ -4,13 +4,6 @@ import { StorageService } from '../storage/storage.service';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 
-const upload = (mimetype: string) =>
-  ({
-    mimetype,
-    buffer: Buffer.from('conteudo'),
-    originalname: 'qualquer.exe',
-  }) as Express.Multer.File;
-
 describe('ProductsController', () => {
   let controller: ProductsController;
   const service = {
@@ -19,7 +12,7 @@ describe('ProductsController', () => {
     addImage: jest.fn(),
     removeImage: jest.fn(),
   };
-  const storage = { save: jest.fn() };
+  const storage = { saveImage: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -47,48 +40,41 @@ describe('ProductsController', () => {
   });
 
   describe('uploadImage', () => {
-    it('guarda a imagem com nome aleatório e registra a foto', async () => {
-      await expect(
-        controller.uploadImage('prod-1', upload('image/png'), 'true'),
-      ).resolves.toEqual({ id: 'img-1' });
+    const file = { mimetype: 'image/png' } as Express.Multer.File;
 
-      const [key, body, contentType] = storage.save.mock.calls[0];
-      // O nome vem de um UUID e a extensão do tipo do arquivo, nunca do nome enviado.
-      expect(key).toMatch(/^[0-9a-f-]{36}\.png$/);
-      expect(body).toEqual(Buffer.from('conteudo'));
-      expect(contentType).toBe('image/png');
+    it('guarda a imagem e registra a foto com o endereço devolvido', async () => {
+      storage.saveImage.mockResolvedValue('/uploads/abc.png');
+
+      await expect(
+        controller.uploadImage('prod-1', file, 'true'),
+      ).resolves.toEqual({ id: 'img-1' });
+      expect(storage.saveImage).toHaveBeenCalledWith(file);
       expect(service.addImage).toHaveBeenCalledWith(
         'prod-1',
-        `/uploads/${key}`,
+        '/uploads/abc.png',
         true,
       );
     });
 
     it('trata a foto como não sendo capa por padrão', async () => {
-      await controller.uploadImage('prod-1', upload('image/jpeg'));
+      storage.saveImage.mockResolvedValue('/uploads/abc.png');
+
+      await controller.uploadImage('prod-1', file);
 
       expect(service.addImage).toHaveBeenCalledWith(
         'prod-1',
-        expect.stringMatching(/\.jpg$/),
+        '/uploads/abc.png',
         false,
       );
     });
 
-    it.each(['application/pdf', 'text/html', 'image/svg+xml'])(
-      'recusa arquivo do tipo %s',
-      async (mimetype) => {
-        await expect(
-          controller.uploadImage('prod-1', upload(mimetype)),
-        ).rejects.toThrow(BadRequestException);
-        expect(storage.save).not.toHaveBeenCalled();
-        expect(service.addImage).not.toHaveBeenCalled();
-      },
-    );
+    it('não registra a foto quando o arquivo é recusado', async () => {
+      storage.saveImage.mockRejectedValue(new BadRequestException());
 
-    it('recusa requisição sem arquivo', async () => {
       await expect(controller.uploadImage('prod-1', undefined)).rejects.toThrow(
         BadRequestException,
       );
+      expect(service.addImage).not.toHaveBeenCalled();
     });
   });
 

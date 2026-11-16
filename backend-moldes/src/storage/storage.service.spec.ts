@@ -4,7 +4,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { existsSync } from 'fs';
 import { mkdtemp, rm } from 'fs/promises';
@@ -36,6 +36,81 @@ describe('StorageService', () => {
     expect(StorageService.contentTypeFor('foto.webp')).toBe('image/webp');
     expect(StorageService.contentTypeFor('arquivo.exe')).toBeUndefined();
     expect(StorageService.contentTypeFor('sem-extensao')).toBeUndefined();
+  });
+
+  describe('saveImage', () => {
+    const upload = (mimetype: string) =>
+      ({
+        mimetype,
+        buffer: Buffer.from('conteudo'),
+        originalname: 'qualquer.exe',
+      }) as Express.Multer.File;
+    let service: StorageService;
+    let save: jest.SpyInstance;
+
+    beforeEach(() => {
+      service = new StorageService(configWith({}));
+      save = jest.spyOn(service, 'save').mockResolvedValue(undefined);
+    });
+
+    it('guarda com nome aleatório e devolve o endereço público', async () => {
+      const url = await service.saveImage(upload('image/png'));
+
+      // O nome vem de um UUID e a extensão do tipo do arquivo, nunca do nome enviado.
+      expect(url).toMatch(/^\/uploads\/[0-9a-f-]{36}\.png$/);
+      expect(save).toHaveBeenCalledWith(
+        url.replace('/uploads/', ''),
+        Buffer.from('conteudo'),
+        'image/png',
+      );
+    });
+
+    it.each(['application/pdf', 'text/html', 'image/svg+xml'])(
+      'recusa arquivo do tipo %s',
+      async (mimetype) => {
+        await expect(service.saveImage(upload(mimetype))).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(save).not.toHaveBeenCalled();
+      },
+    );
+
+    it('recusa requisição sem arquivo', async () => {
+      await expect(service.saveImage(undefined)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('removeByUrl', () => {
+    let service: StorageService;
+    let remove: jest.SpyInstance;
+
+    beforeEach(() => {
+      service = new StorageService(configWith({}));
+      remove = jest.spyOn(service, 'remove').mockResolvedValue(undefined);
+    });
+
+    it('apaga o arquivo do endereço /uploads/<arquivo>', async () => {
+      await service.removeByUrl('/uploads/foto.png');
+
+      expect(remove).toHaveBeenCalledWith('foto.png');
+    });
+
+    it('ignora endereço vazio', async () => {
+      await service.removeByUrl(null);
+
+      expect(remove).not.toHaveBeenCalled();
+    });
+
+    it('não falha se o armazenamento estiver fora do ar', async () => {
+      jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      remove.mockRejectedValue(new Error('S3 indisponível'));
+
+      await expect(
+        service.removeByUrl('/uploads/foto.png'),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('sem S3_BUCKET (pasta local)', () => {

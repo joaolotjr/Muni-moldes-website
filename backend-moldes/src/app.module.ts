@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CollectionsModule } from './collections/collections.module';
 import { ProductsModule } from './products/products.module';
 import { StorageModule } from './storage/storage.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     CollectionsModule,
     ProductsModule,
+    NewsModule,
     StorageModule,
   ],
   controllers: [AppController],
