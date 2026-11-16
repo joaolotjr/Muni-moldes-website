@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:3333';
+// Sem VITE_API_URL, usa o mesmo endereço pelo qual o site foi aberto (localhost, IP da rede etc.).
+export const API_URL: string =
+  import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:3333`;
 
 export const api = axios.create({
   baseURL: API_URL,
