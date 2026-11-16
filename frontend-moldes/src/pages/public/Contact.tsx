@@ -1,4 +1,5 @@
-import { Phone, Mail, Instagram, MapPin, Send } from 'lucide-react';
+import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import { InstagramIcon } from '../../components/icons/InstagramIcon';
 
 export function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,7 +74,7 @@ export function Contact() {
                   <h4 className="font-bold mb-4 font-sans">Redes Sociais</h4>
                   <div className="flex gap-4">
                     <a href="#" className="w-12 h-12 bg-white/20 hover:bg-white hover:text-munigreen transition-colors backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <Instagram className="w-5 h-5" />
+                      <InstagramIcon className="w-5 h-5" />
                     </a>
                   </div>
                 </div>

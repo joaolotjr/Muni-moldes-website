@@ -49,7 +49,7 @@ export class ProductsService {
   async findOne(slug: string): Promise<Product> {
     const product = await this.productsRepository.findOne({
       where: { slug },
-      relations: ['images', 'collection'],
+      relations: { images: true, collection: true },
     });
 
     if (!product) {

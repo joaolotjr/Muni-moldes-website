@@ -53,7 +53,7 @@ export class CollectionsService {
   async remove(id: string): Promise<void> {
     const collection = await this.collectionsRepository.findOne({ 
       where: { id },
-      relations: ['products']
+      relations: { products: true }
     });
     
     if (!collection) {

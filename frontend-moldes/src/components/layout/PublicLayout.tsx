@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Instagram, Phone, MessageCircle } from 'lucide-react';
+import { Menu, X, Phone, MessageCircle } from 'lucide-react';
+import { InstagramIcon } from '../icons/InstagramIcon';
 import { useState, useEffect } from 'react';
 
 export function PublicLayout() {
@@ -111,7 +112,7 @@ export function PublicLayout() {
                 </li>
                 <li>
                   <a href="#" className="text-munidark/70 hover:text-munipink text-sm transition-colors flex items-center gap-2 w-fit">
-                    <Instagram className="w-4 h-4" />
+                    <InstagramIcon className="w-4 h-4" />
                     @munimoldes
                   </a>
                 </li>
