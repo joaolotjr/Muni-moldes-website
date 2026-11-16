@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class ProductsService {
@@ -11,6 +12,7 @@ export class ProductsService {
     private productsRepository: Repository<Product>,
     @InjectRepository(ProductImage)
     private productImagesRepository: Repository<ProductImage>,
+    private storage: StorageService,
   ) {}
 
   async create(productData: Partial<Product>): Promise<Product> {
@@ -65,7 +67,9 @@ export class ProductsService {
   }
 
   async remove(id: string): Promise<void> {
+    const images = await this.productImagesRepository.find({ where: { product_id: id } });
     await this.productsRepository.delete(id);
+    await Promise.all(images.map((image) => this.deleteStoredFile(image.image_url)));
   }
 
   async addImage(productId: string, imageUrl: string, isCover: boolean = false): Promise<ProductImage> {
@@ -78,6 +82,18 @@ export class ProductsService {
   }
 
   async removeImage(imageId: string): Promise<void> {
+    const image = await this.productImagesRepository.findOne({ where: { id: imageId } });
     await this.productImagesRepository.delete(imageId);
+    if (image) await this.deleteStoredFile(image.image_url);
+  }
+
+  // Apaga o arquivo da foto. Uma falha aqui não desfaz a exclusão no banco.
+  private async deleteStoredFile(imageUrl: string): Promise<void> {
+    const key = imageUrl.replace(/^\/uploads\//, '');
+    try {
+      await this.storage.remove(key);
+    } catch (error) {
+      console.error(`Não foi possível apagar a foto ${key} do armazenamento`, error);
+    }
   }
 }

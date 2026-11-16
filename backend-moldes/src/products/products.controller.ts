@@ -1,14 +1,28 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Product } from './entities/product.entity';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
+import { randomUUID } from 'crypto';
+import { StorageService } from '../storage/storage.service';
+
+// Tipos de imagem aceitos no upload e a extensão gravada para cada um.
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+  'image/avif': '.avif',
+};
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Get()
   findAll(@Query('collection') collectionSlug?: string, @Query('public') isPublic?: string) {
@@ -41,24 +55,22 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        cb(null, `${uniqueSuffix}${ext}`);
-      }
-    })
+    storage: memoryStorage(),
+    limits: { fileSize: MAX_IMAGE_BYTES },
   }))
   async uploadImage(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body('isCover') isCover?: string
   ) {
-    // The file is saved locally to ./uploads.
-    // In MVP we serve the folder /uploads as static assets.
-    const imageUrl = `/uploads/${file.filename}`;
-    return this.productsService.addImage(id, imageUrl, isCover === 'true');
+    const extension = file && IMAGE_EXTENSIONS[file.mimetype];
+    if (!file || !extension) {
+      throw new BadRequestException('Envie uma imagem JPG, PNG, WebP, GIF ou AVIF.');
+    }
+    // O arquivo vai para o armazenamento (S3 ou pasta local) e é servido em /uploads/<nome>.
+    const key = `${randomUUID()}${extension}`;
+    await this.storage.save(key, file.buffer, file.mimetype);
+    return this.productsService.addImage(id, `/uploads/${key}`, isCover === 'true');
   }
 
   @UseGuards(JwtAuthGuard)
