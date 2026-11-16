@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { ArrowLeft, Ruler, Weight, MessageCircle, Image as ImageIcon } from 'lucide-react';
 
 export function ProductDetails() {
@@ -65,7 +65,7 @@ export function ProductDetails() {
             <div className="p-6 sm:p-10 border-b md:border-b-0 md:border-r border-munipink/10 bg-munibg flex flex-col">
               <div className="aspect-square bg-white rounded-[2rem] overflow-hidden border border-munipink/10 mb-6 flex-1 flex items-center justify-center p-4">
                 {activeImage ? (
-                  <img src={`http://localhost:3333${activeImage}`} alt={product.name} className="w-full h-full object-contain" />
+                  <img src={`${API_URL}${activeImage}`} alt={product.name} className="w-full h-full object-contain" />
                 ) : (
                   <div className="text-munidark/30 flex flex-col items-center">
                     <ImageIcon className="w-16 h-16 mb-2 opacity-50" />
@@ -82,7 +82,7 @@ export function ProductDetails() {
                       onClick={() => setActiveImage(img.image_url)}
                       className={`flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${activeImage === img.image_url ? 'border-munipink shadow-md scale-105' : 'border-transparent hover:border-munipink/50 opacity-70 hover:opacity-100'}`}
                     >
-                      <img src={`http://localhost:3333${img.image_url}`} alt="Thumbnail" className="w-full h-full object-cover" />
+                      <img src={`${API_URL}${img.image_url}`} alt="Thumbnail" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

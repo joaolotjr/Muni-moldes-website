@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { Search, FolderTree, Image as ImageIcon } from 'lucide-react';
 
 export function Catalog() {
@@ -110,7 +110,7 @@ export function Catalog() {
                   <Link key={product.id} to={`/molde/${product.slug}`} className="group bg-white rounded-[2rem] border border-munipink/10 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-munipink/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
                     <div className="aspect-square bg-munibg relative overflow-hidden">
                       {product.images && product.images.length > 0 ? (
-                        <img src={`http://localhost:3333${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={`${API_URL}${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-munidark/30"><ImageIcon className="w-8 h-8 opacity-50" /></div>
                       )}

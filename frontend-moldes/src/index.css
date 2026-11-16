@@ -1,37 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --color-munipink: #bd8d8a; /* Rosa/Salmão do logo */
+  --color-munigreen: #7a9f97; /* Verde Sálvia do logo */
+  --color-munidark: #4a5568; /* Cinza escuro para textos */
+  --color-munibg: #faf8f5; /* Fundo bege clarinho */
 
-:root {
-  font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  
-  /* Suavidade na rolagem */
+  --font-sans: 'Montserrat', sans-serif;
+  --font-heading: 'Playfair Display', serif;
+}
+
+html {
   scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-  background-color: #F5F0E6; /* munilight */
-  color: #322d2d; /* munidark */
+  background-color: var(--color-munibg);
+  color: var(--color-munidark);
 }
 
-/* Estilização da barra de rolagem (Opcional) */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F5F0E6;
+  background: var(--color-munibg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #DC96A0; /* munipink */
+  background: var(--color-munipink);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #64968C; /* munigreen */
+  background: var(--color-munigreen);
 }
