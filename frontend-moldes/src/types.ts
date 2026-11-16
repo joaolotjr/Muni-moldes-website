@@ -19,3 +19,23 @@ export interface Product {
   collection: Collection | null;
   images: ProductImage[];
 }
+
+export type NewsCategory = 'lancamentos' | 'eventos' | 'tutoriais' | 'novidades';
+export type NewsStatus = 'draft' | 'published';
+
+export interface NewsPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  /** Só vem na notícia aberta e no painel; a listagem do site não traz o texto. */
+  content?: string;
+  category: NewsCategory;
+  tags: string[];
+  cover_image_url: string | null;
+  status?: NewsStatus;
+  published_at: string | null;
+  author_name: string | null;
+  created_at?: string;
+  updated_at?: string;
+}

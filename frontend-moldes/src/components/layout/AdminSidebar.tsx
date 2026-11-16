@@ -1,16 +1,17 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, FolderTree, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Newspaper, LogOut } from 'lucide-react';
 import { logout } from '../../services/api';
 
-export function AdminSidebar() {
+export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
     { name: 'Produtos', path: '/admin/produtos', icon: Package },
     { name: 'Coleções', path: '/admin/colecoes', icon: FolderTree },
+    { name: 'Notícias', path: '/admin/noticias', icon: Newspaper },
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 min-h-screen flex flex-col shadow-2xl z-10">
+    <aside className="w-64 shrink-0 bg-slate-900 text-slate-300 h-full flex flex-col shadow-2xl z-10">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30"></div>
@@ -24,6 +25,7 @@ export function AdminSidebar() {
             key={item.path}
             to={item.path}
             end={item.exact}
+            onClick={onNavigate}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                 isActive

@@ -14,6 +14,10 @@ import { Catalog } from './pages/public/Catalog';
 import { ProductDetails } from './pages/public/ProductDetails';
 import { About } from './pages/public/About';
 import { Contact } from './pages/public/Contact';
+import { News } from './pages/public/News';
+import { NewsArticle } from './pages/public/NewsArticle';
+import { NewsList } from './pages/admin/NewsList';
+import { NewsForm } from './pages/admin/NewsForm';
 
 export default function App() {
   return (
@@ -27,6 +31,8 @@ export default function App() {
               <Route path="catalogo" element={<Catalog />} />
               <Route path="molde/:slug" element={<ProductDetails />} />
               <Route path="sobre" element={<About />} />
+              <Route path="noticias" element={<News />} />
+              <Route path="noticias/:slug" element={<NewsArticle />} />
               <Route path="contato" element={<Contact />} />
             </Route>
             
@@ -42,6 +48,9 @@ export default function App() {
               <Route path="colecoes" element={<CollectionsList />} />
               <Route path="colecoes/nova" element={<CollectionForm />} />
               <Route path="colecoes/:id" element={<CollectionForm />} />
+              <Route path="noticias" element={<NewsList />} />
+              <Route path="noticias/nova" element={<NewsForm />} />
+              <Route path="noticias/:id" element={<NewsForm />} />
             </Route>
 
             {/* Catch all */}
