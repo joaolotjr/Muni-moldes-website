@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { ImageOff } from 'lucide-react';
 import { API_URL } from '../../services/api';
-import { productQuoteLink } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
 import type { Product } from '../../types';
 
 export function ProductCard({ product }: { product: Product }) {
+  const site = useSite();
   const cover = product.images?.[0]?.image_url;
   const specs = [product.dimensions, product.final_weight].filter(Boolean).join(' • ');
 
@@ -40,7 +41,7 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <a
-        href={productQuoteLink(product)}
+        href={site.productQuoteLink(product)}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Solicitar orçamento do molde ${product.name}`}

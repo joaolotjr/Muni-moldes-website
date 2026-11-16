@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ImageOff } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
-import { productQuoteLink } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { ProductCard } from '../../components/public/ProductCard';
 import type { Product } from '../../types';
 
 export function ProductDetails() {
   const { slug } = useParams();
+  const site = useSite();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,7 @@ export function ProductDetails() {
 
           <div className="mt-8 border-t border-line pt-8">
             <a
-              href={productQuoteLink(product)}
+              href={site.productQuoteLink(product)}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary w-full py-5"

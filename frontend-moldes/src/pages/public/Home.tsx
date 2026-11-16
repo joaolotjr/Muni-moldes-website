@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Factory, MessagesSquare, Package } from 'lucide-react';
 import { api } from '../../services/api';
-import { defaultQuoteMessage, whatsappLink } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
@@ -44,6 +44,7 @@ const collectionTones = [
 ];
 
 export function Home() {
+  const site = useSite();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,16 +86,17 @@ export function Home() {
       <section className="overflow-hidden bg-surface-low">
         <div className="container-page grid items-center gap-10 py-12 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
           <div>
-            <span className="chip bg-secondary-soft px-4 py-1.5 text-[11px] text-secondary-dark">
-              Fábrica de moldes · Atacado e revenda
-            </span>
+            {site.heroBadge && (
+              <span className="chip bg-secondary-soft px-4 py-1.5 text-[11px] text-secondary-dark">
+                {site.heroBadge}
+              </span>
+            )}
             <h1 className="heading-1 mt-5 sm:mt-6">
-              Moldes para chocolate e confeitaria,{' '}
-              <span className="font-normal italic text-primary">direto da fábrica.</span>
+              {site.heroTitle}{' '}
+              <span className="font-normal italic text-primary">{site.heroHighlight}</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-soft sm:text-lg">
-              Catálogo completo para confeitarias, lojistas e revendedores. Escolha os modelos e
-              peça o orçamento da quantidade que você precisa.
+              {site.heroText}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
               <Link to="/catalogo" className="btn btn-primary sm:px-10 sm:py-4">
@@ -102,7 +104,7 @@ export function Home() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
-                href={whatsappLink(defaultQuoteMessage)}
+                href={site.quoteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline sm:px-10 sm:py-4"
@@ -256,10 +258,8 @@ export function Home() {
             <h2 className="heading-2 mt-4">
               Nascida na <span className="italic">confeitaria</span>
             </h2>
-            <p className="mt-6 text-base leading-relaxed text-ink-soft sm:text-lg">
-              A Muni Moldes começou com a Mariluci, confeiteira que passou a fabricar os próprios
-              moldes por não encontrar no mercado a qualidade que precisava. Hoje a fábrica produz
-              para quem vive da confeitaria e conhece a diferença que um bom molde faz na produção.
+            <p className="mt-6 whitespace-pre-line text-base leading-relaxed text-ink-soft sm:text-lg">
+              {site.homeStoryText}
             </p>
             <Link
               to="/sobre"

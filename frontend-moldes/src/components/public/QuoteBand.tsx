@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
-import { defaultQuoteMessage, whatsappLink } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 
 // Bloco de chamada para orçamento, usado no fim das páginas.
 export function QuoteBand() {
+  const site = useSite();
   return (
     <section className="container-page pb-16 pt-4 sm:pb-24">
       <div className="relative flex flex-col gap-8 overflow-hidden rounded-3xl bg-ink px-6 py-10 text-white sm:px-12 sm:py-14 lg:flex-row lg:items-center lg:justify-between lg:px-20 lg:py-20">
@@ -14,7 +15,7 @@ export function QuoteBand() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <a
-              href={whatsappLink(defaultQuoteMessage)}
+              href={site.quoteUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn bg-primary-soft text-primary-dark hover:bg-primary-pale"
