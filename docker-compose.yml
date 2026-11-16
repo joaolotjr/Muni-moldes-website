@@ -1,5 +1,5 @@
 # Na raiz do projeto: Muni-moldes-website/docker-compose.yml
-version: '3.8'
+
 
 services:
   postgres_db:
@@ -15,3 +15,18 @@ services:
     volumes:
       # Para persistir os dados do banco fora do container
       - ./pgdata:/var/lib/postgresql/data
+
+  # Armazenamento das fotos (API S3). Só responde na própria máquina.
+  garage:
+    image: dxflrs/garage:v2.5.0
+    container_name: muni_moldes_garage
+    restart: always
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+    ports:
+      - "127.0.0.1:3900:3900" # API S3
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - ./garage-data/meta:/var/lib/garage/meta
+      - ./garage-data/data:/var/lib/garage/data

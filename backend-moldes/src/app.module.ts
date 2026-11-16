@@ -1,36 +1,38 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { CollectionsModule } from './collections/collections.module';
 import { ProductsModule } from './products/products.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { StorageModule } from './storage/storage.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: '127.0.0.1', // Mapped from docker-compose
-      port: 5433,
-      username: 'user_admin',
-      password: 'senha_segura',
-      database: 'catalogo_db',
-      autoLoadEntities: true, // Automatically loads entities
-      synchronize: true, // ONLY FOR DEVELOPMENT: Creates the tables
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres' as const,
+        host: config.get<string>('DB_HOST', '127.0.0.1'),
+        port: Number(config.get('DB_PORT', 5433)),
+        username: config.getOrThrow<string>('DB_USER'),
+        password: config.getOrThrow<string>('DB_PASSWORD'),
+        database: config.getOrThrow<string>('DB_NAME'),
+        autoLoadEntities: true,
+        // Cria/atualiza as tabelas automaticamente. Desligue em produção (DB_SYNCHRONIZE=false).
+        synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
+      }),
     }),
     UsersModule,
     AuthModule,
     CollectionsModule,
     ProductsModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
-      serveRoot: '/uploads',
-    }),
+    NewsModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

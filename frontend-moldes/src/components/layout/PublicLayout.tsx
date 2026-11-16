@@ -1,148 +1,192 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Instagram, Phone, MessageCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Mail, Menu, X } from 'lucide-react';
+import { InstagramIcon } from '../icons/InstagramIcon';
+import { WhatsAppIcon } from '../icons/WhatsAppIcon';
+import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
+
+const navItems = [
+  { to: '/', label: 'Início', end: true },
+  { to: '/catalogo', label: 'Catálogo', end: false },
+  { to: '/sobre', label: 'Sobre nós', end: false },
+  { to: '/noticias', label: 'Notícias', end: false },
+  { to: '/contato', label: 'Contato', end: false },
+];
 
 export function PublicLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  const quoteUrl = whatsappLink(defaultQuoteMessage);
+
   return (
-    <div className="min-h-screen flex flex-col bg-munibg font-sans selection:bg-munipink/30">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-munipink/20 shadow-sm transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-transparent group-hover:border-munipink/30 transition-all duration-300">
-                <img src="/logo.png" alt="Muni Moldes" className="w-full h-full object-cover bg-white" onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=MM&background=bd8d8a&color=fff';
-                }}/>
-              </div>
-              <span className="font-heading font-bold text-2xl tracking-tight text-munidark transition-colors">
-                Muni Moldes
-              </span>
-            </Link>
+    <div className="flex min-h-screen flex-col bg-surface font-sans text-ink selection:bg-primary-soft selection:text-primary-dark">
+      <header className="sticky top-0 z-40 border-b border-line-soft bg-surface shadow-soft">
+        <div className="container-page flex h-16 items-center justify-between gap-4 md:h-20">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            <img src="/logo.png" alt="" className="h-10 w-10 shrink-0 md:h-11 md:w-11" />
+            <span className="truncate text-base font-bold uppercase tracking-[0.18em] md:text-xl">
+              {site.name}
+            </span>
+          </Link>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Home</Link>
-              <Link to="/catalogo" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Catálogo</Link>
-              <Link to="/sobre" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Sobre Nós</Link>
-              <Link to="/contato" className="text-sm font-medium text-munidark/80 hover:text-munigreen transition-colors">Contato</Link>
-              <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-munipink hover:bg-[#a67c79] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-md shadow-munipink/20 hover:-translate-y-0.5">
-                <MessageCircle className="w-4 h-4" />
-                Orçamento
-              </a>
-            </div>
+          <nav className="hidden items-center gap-8 md:flex lg:gap-10" aria-label="Principal">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `border-b-2 pb-1 text-[15px] transition-colors duration-300 ${
+                    isActive
+                      ? 'border-primary-soft font-bold text-primary'
+                      : 'border-transparent text-ink-soft hover:text-primary'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
 
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2 text-munidark hover:text-munigreen transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          <a
+            href={quoteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary hidden min-h-11 py-2.5 md:inline-flex"
+          >
+            Solicitar orçamento
+          </a>
+
+          {/* No celular: atalho de orçamento e menu, com área de toque de 44px */}
+          <div className="flex shrink-0 items-center gap-1 md:hidden">
+            <a
+              href={quoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Solicitar orçamento pelo WhatsApp"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              <WhatsAppIcon className="h-5 w-5" />
+            </a>
+            <button
+              type="button"
+              className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-munipink/20 absolute w-full animate-in slide-in-from-top-4 duration-200">
-            <div className="px-4 pt-2 pb-6 flex flex-col gap-4">
-              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Home</Link>
-              <Link to="/catalogo" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Catálogo de Moldes</Link>
-              <Link to="/sobre" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Sobre Nós</Link>
-              <Link to="/contato" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-munidark p-2 hover:bg-munibg rounded-lg">Contato</Link>
-              <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-munipink text-white p-3 rounded-xl font-medium mt-2">
-                <MessageCircle className="w-5 h-5" />
-                Solicitar Orçamento
+          <nav className="border-t border-line-soft bg-surface md:hidden" aria-label="Principal">
+            <div className="container-page flex flex-col pb-5 pt-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `border-b border-line-soft py-4 font-serif text-lg ${
+                      isActive ? 'font-semibold text-primary' : 'text-ink'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-5">
+                <WhatsAppIcon className="h-4 w-4" />
+                Solicitar orçamento
               </a>
             </div>
-          </div>
+          </nav>
         )}
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-20 flex flex-col">
+      <main className="flex flex-1 flex-col">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-munipink/20 pt-16 pb-8 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-munibg border border-munipink/20">
-                  <img src="/logo.png" alt="Muni Moldes Logo" className="w-full h-full object-cover" onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}/>
-                </div>
-                <h3 className="text-2xl font-heading font-bold text-munidark tracking-tight">Muni Moldes</h3>
-              </div>
-              <p className="text-munidark/70 text-sm leading-relaxed max-w-xs font-sans">
-                Fábrica de moldes artesanais com qualidade premium. Transformando sua criatividade com detalhes perfeitos.
-              </p>
+      <footer className="mt-auto border-t border-line-soft bg-surface-high">
+        <div className="container-page grid gap-10 py-12 md:grid-cols-3 md:gap-12 md:py-16">
+          <div>
+            <p className="font-serif text-xl italic">{site.name}</p>
+            <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-ink-soft">
+              Fábrica de moldes para chocolate e confeitaria. Atendemos pedidos em quantidade
+              para confeitarias, lojistas e revendedores.
+            </p>
+            <div className="mt-6 flex gap-2">
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <WhatsAppIcon className="h-5 w-5" />
+              </a>
+              <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <InstagramIcon className="h-5 w-5" />
+              </a>
+              <a href={`mailto:${site.email}`} aria-label="E-mail" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <Mail className="h-5 w-5" />
+              </a>
             </div>
-            
+          </div>
+
+          <div className="grid grid-cols-[2fr_3fr] gap-6">
             <div>
-              <h4 className="text-munidark font-heading font-semibold text-lg mb-4">Links Rápidos</h4>
-              <ul className="space-y-3">
-                <li><Link to="/catalogo" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Ver Catálogo</Link></li>
-                <li><Link to="/sobre" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Nossa História</Link></li>
-                <li><Link to="/contato" className="text-munidark/70 hover:text-munipink text-sm transition-colors">Fale Conosco</Link></li>
-                <li><Link to="/admin" className="text-munidark/40 hover:text-munipink text-xs transition-colors mt-2 inline-block">Área Restrita</Link></li>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]">Navegação</p>
+              <ul className="mt-5 space-y-3 text-sm">
+                {navItems.map((item) => (
+                  <li key={item.to}>
+                    <Link to={item.to} className="text-ink-soft underline-offset-4 hover:underline hover:decoration-primary-soft">
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
-
             <div>
-              <h4 className="text-munidark font-heading font-semibold text-lg mb-4">Contato</h4>
-              <ul className="space-y-3">
-                <li className="text-munidark/70 text-sm flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-munigreen" />
-                  (11) 99999-9999
-                </li>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]">Atendimento</p>
+              <ul className="mt-5 space-y-3 text-sm text-ink-soft">
                 <li>
-                  <a href="#" className="text-munidark/70 hover:text-munipink text-sm transition-colors flex items-center gap-2 w-fit">
-                    <Instagram className="w-4 h-4" />
-                    @munimoldes
+                  <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline hover:decoration-primary-soft">
+                    {site.phoneDisplay}
                   </a>
                 </li>
+                <li>
+                  <a href={`mailto:${site.email}`} className="text-[13px] underline-offset-4 hover:underline hover:decoration-primary-soft">
+                    {site.email}
+                  </a>
+                </li>
+                <li>{site.businessHours}</li>
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-munipink/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-munidark/50 text-sm">
-              &copy; {new Date().getFullYear()} Muni Moldes. Todos os direitos reservados.
+
+          <div className="rounded-2xl bg-white p-6 shadow-soft sm:p-8">
+            <p className="heading-3">Peça seu orçamento</p>
+            <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+              Fale direto com a fábrica pelo WhatsApp e receba o orçamento da sua lista de moldes.
             </p>
-            <p className="text-munidark/40 text-xs">
-              Criado com excelência.
-            </p>
+            <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-5 w-full">
+              <WhatsAppIcon className="h-4 w-4" />
+              Chamar no WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <div className="border-t border-line-soft">
+          <div className="container-page flex flex-col justify-between gap-2 py-6 font-serif text-xs text-outline sm:flex-row">
+            <p>&copy; {new Date().getFullYear()} {site.name}. Todos os direitos reservados.</p>
+            <Link to="/admin" className="hover:text-ink">Área restrita</Link>
           </div>
         </div>
       </footer>
-
-      {/* Floating WhatsApp Button */}
-      <a 
-        href="https://wa.me/5511999999999" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 flex items-center justify-center group"
-        aria-label="Fale conosco no WhatsApp"
-      >
-        <MessageCircle className="w-7 h-7" />
-        <span className="absolute right-full mr-4 bg-white text-slate-800 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          Fale com a gente!
-        </span>
-      </a>
     </div>
   );
 }

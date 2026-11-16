@@ -1,24 +1,44 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { api } from '../../services/api';
-import { ArrowLeft, Ruler, Weight, MessageCircle, Image as ImageIcon } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ImageOff } from 'lucide-react';
+import { api, API_URL } from '../../services/api';
+import { productQuoteLink } from '../../config/site';
+import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
+import { ProductCard } from '../../components/public/ProductCard';
+import type { Product } from '../../types';
 
 export function ProductDetails() {
   const { slug } = useParams();
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      setLoading(true);
       try {
-        const res = await api.get(`/products/${slug}`);
+        const res = await api.get<Product>(`/products/${slug}`);
         setProduct(res.data);
-        if (res.data.images && res.data.images.length > 0) {
-          setActiveImage(res.data.images[0].image_url);
+        setActiveImage(res.data.images?.[0]?.image_url ?? null);
+
+        // Outros moldes da mesma linha. Se falhar, a página segue sem a seção.
+        const collectionId = res.data.collection?.id;
+        if (collectionId) {
+          try {
+            const all = await api.get<Product[]>('/products?public=true');
+            setRelated(
+              all.data.filter((p) => p.collection?.id === collectionId && p.id !== res.data.id).slice(0, 4),
+            );
+          } catch {
+            setRelated([]);
+          }
+        } else {
+          setRelated([]);
         }
       } catch (error) {
         console.error('Error fetching product details', error);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -27,124 +47,160 @@ export function ProductDetails() {
   }, [slug]);
 
   if (loading) {
-    return <div className="flex-1 flex justify-center items-center"><div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    return (
+      <div className="container-page grid flex-1 gap-8 py-8 lg:grid-cols-12 lg:gap-16 lg:py-16">
+        <div className="aspect-square animate-pulse rounded-2xl bg-white shadow-soft lg:col-span-7" />
+        <div className="space-y-4 lg:col-span-5">
+          <div className="h-4 w-32 animate-pulse rounded bg-surface-high" />
+          <div className="h-10 w-3/4 animate-pulse rounded bg-surface-high" />
+          <div className="h-32 animate-pulse rounded bg-surface-mid" />
+        </div>
+      </div>
+    );
   }
 
   if (!product) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-20 px-4">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">Produto não encontrado</h2>
-        <p className="text-slate-500 mb-8 text-center max-w-md">O molde que você está procurando não existe ou não está mais disponível no catálogo.</p>
-        <Link to="/catalogo" className="text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Voltar ao catálogo
+      <div className="container-page flex flex-1 flex-col items-start justify-center py-20">
+        <p className="eyebrow">Catálogo</p>
+        <h1 className="heading-1 mt-3">Molde não encontrado</h1>
+        <p className="mt-4 max-w-md text-ink-soft">
+          Este molde não existe ou saiu do catálogo. Veja os modelos disponíveis.
+        </p>
+        <Link to="/catalogo" className="btn btn-primary mt-8">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao catálogo
         </Link>
       </div>
     );
   }
 
-  // Generate WhatsApp link
-  const phoneNumber = "5511999999999";
-  const message = encodeURIComponent(`Olá! Gostaria de solicitar um orçamento para o molde: *${product.name}*.\n\nLink: ${window.location.href}`);
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+  const specs = [
+    { label: 'Linha', value: product.collection?.name },
+    { label: 'Dimensões', value: product.dimensions },
+    { label: 'Peso', value: product.final_weight },
+  ].filter((spec) => spec.value);
 
   return (
-    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
-      <div className="bg-white border-b border-munipink/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/catalogo" className="inline-flex items-center gap-2 text-sm font-bold text-munidark/50 hover:text-munipink transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Voltar ao catálogo
-          </Link>
+    <div className="container-page flex-1 pb-14 pt-6 sm:pb-24 sm:pt-10 lg:pt-16">
+      <nav
+        className="mb-6 flex flex-wrap gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-[0.12em] text-outline lg:mb-12"
+        aria-label="Você está em"
+      >
+        <Link to="/catalogo" className="hover:text-primary">Catálogo</Link>
+        {product.collection && (
+          <>
+            <span>/</span>
+            <Link to={`/catalogo?colecao=${product.collection.slug}`} className="hover:text-primary">
+              {product.collection.name}
+            </Link>
+          </>
+        )}
+        <span>/</span>
+        <span className="text-ink">{product.name}</span>
+      </nav>
+
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
+        {/* Fotos */}
+        <div className="lg:col-span-7">
+          <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-white shadow-soft lg:aspect-[4/3]">
+            {activeImage ? (
+              <img src={`${API_URL}${activeImage}`} alt={product.name} className="h-full w-full object-contain" />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-outline/60">
+                <ImageOff className="h-8 w-8" strokeWidth={1.5} />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">Foto em breve</span>
+              </div>
+            )}
+          </div>
+
+          {product.images.length > 1 && (
+            <div className="mt-3 grid grid-cols-4 gap-3 sm:mt-6 sm:gap-6">
+              {product.images.map((img, index) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setActiveImage(img.image_url)}
+                  aria-label={`Ver foto ${index + 1}`}
+                  aria-pressed={activeImage === img.image_url}
+                  className={`aspect-square overflow-hidden rounded-xl bg-white shadow-soft ring-2 ring-offset-2 ring-offset-surface transition ${
+                    activeImage === img.image_url ? 'ring-primary' : 'ring-transparent hover:opacity-90'
+                  }`}
+                >
+                  <img src={`${API_URL}${img.image_url}`} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-[2rem] shadow-sm border border-munipink/10 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            
-            {/* Image Gallery */}
-            <div className="p-6 sm:p-10 border-b md:border-b-0 md:border-r border-munipink/10 bg-munibg flex flex-col">
-              <div className="aspect-square bg-white rounded-[2rem] overflow-hidden border border-munipink/10 mb-6 flex-1 flex items-center justify-center p-4">
-                {activeImage ? (
-                  <img src={`http://localhost:3333${activeImage}`} alt={product.name} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-munidark/30 flex flex-col items-center">
-                    <ImageIcon className="w-16 h-16 mb-2 opacity-50" />
-                    <span className="text-sm font-sans">Sem foto disponível</span>
+        {/* Ficha */}
+        <div className="lg:col-span-5">
+          {product.collection && <p className="eyebrow tracking-[0.2em]">{product.collection.name}</p>}
+          <h1 className="heading-1 mt-3">{product.name}</h1>
+
+          {product.description && (
+            <p className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-ink-soft sm:text-lg">
+              {product.description}
+            </p>
+          )}
+
+          {specs.length > 0 && (
+            <div className="mt-8">
+              <h2 className="heading-3 border-b border-line pb-2">Especificações técnicas</h2>
+              <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5">
+                {specs.map((spec) => (
+                  <div key={spec.label}>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-outline">{spec.label}</dt>
+                    <dd className="mt-1">{spec.value}</dd>
                   </div>
-                )}
-              </div>
-              
-              {product.images && product.images.length > 1 && (
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                  {product.images.map((img: any) => (
-                    <button 
-                      key={img.id}
-                      onClick={() => setActiveImage(img.image_url)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${activeImage === img.image_url ? 'border-munipink shadow-md scale-105' : 'border-transparent hover:border-munipink/50 opacity-70 hover:opacity-100'}`}
-                    >
-                      <img src={`http://localhost:3333${img.image_url}`} alt="Thumbnail" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </dl>
             </div>
+          )}
 
-            {/* Product Info */}
-            <div className="p-6 sm:p-10 lg:p-14 flex flex-col">
-              {product.collection && (
-                <div className="mb-4">
-                  <span className="inline-block bg-munipink/10 text-munipink text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest font-sans">
-                    {product.collection.name}
-                  </span>
-                </div>
-              )}
-              
-              <h1 className="font-heading text-3xl sm:text-4xl font-bold text-munidark tracking-tight mb-4">
-                {product.name}
-              </h1>
-              
-              <p className="font-sans text-munidark/80 leading-relaxed mb-8 whitespace-pre-wrap flex-1 text-lg">
-                {product.description || 'Nenhuma descrição fornecida para este molde.'}
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 mb-10">
-                <div className="bg-munibg rounded-2xl p-5 border border-munipink/10 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-munigreen flex-shrink-0 shadow-sm border border-munipink/5">
-                    <Ruler className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans text-xs font-bold text-munidark/50 uppercase tracking-wider mb-1">Dimensões</h4>
-                    <p className="font-sans font-bold text-munidark">{product.dimensions || 'N/A'}</p>
-                  </div>
-                </div>
-                <div className="bg-munibg rounded-2xl p-5 border border-munipink/10 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-munipink flex-shrink-0 shadow-sm border border-munipink/5">
-                    <Weight className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans text-xs font-bold text-munidark/50 uppercase tracking-wider mb-1">Peso (Molde)</h4>
-                    <p className="font-sans font-bold text-munidark">{product.final_weight || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <a 
-                href={whatsappUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 px-8 rounded-full font-bold text-lg transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/40 hover:-translate-y-1 flex items-center justify-center gap-3 font-sans"
-              >
-                <MessageCircle className="w-6 h-6" />
-                Solicitar Orçamento
-              </a>
-              <p className="text-center font-sans text-sm text-munidark/40 mt-4">
-                Você será redirecionado para o nosso WhatsApp.
-              </p>
-            </div>
-
+          <div className="mt-8 border-t border-line pt-8">
+            <a
+              href={productQuoteLink(product)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary w-full py-5"
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+              Solicitar orçamento
+            </a>
+            <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+              Informe a quantidade desejada. Para vários modelos, envie a lista completa na mesma conversa.
+            </p>
+            <Link to="/catalogo" className="btn btn-secondary mt-4 w-full">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao catálogo
+            </Link>
           </div>
         </div>
       </div>
+
+      {related.length > 0 && product.collection && (
+        <section className="mt-16 lg:mt-32">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <h2 className="heading-2">Moldes relacionados</h2>
+              <p className="mt-2 text-ink-soft">Da mesma linha: {product.collection.name}</p>
+            </div>
+            <Link
+              to={`/catalogo?colecao=${product.collection.slug}`}
+              className="hidden shrink-0 border-b border-primary pb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-primary sm:block"
+            >
+              Ver toda a linha
+            </Link>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

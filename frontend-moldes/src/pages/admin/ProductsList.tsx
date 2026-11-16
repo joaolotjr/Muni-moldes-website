@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -86,7 +86,7 @@ export function ProductsList() {
                     <td className="p-4 pl-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                         {product.images && product.images.length > 0 ? (
-                          <img src={`http://localhost:3333${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover" />
+                          <img src={`${API_URL}${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover" />
                         ) : (
                           <ImageIcon className="w-5 h-5 text-slate-400" />
                         )}

@@ -1,24 +1,26 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { api } from '../../services/api';
-import { Search, FolderTree, Image as ImageIcon } from 'lucide-react';
+import { ProductCard } from '../../components/public/ProductCard';
+import { QuoteBand } from '../../components/public/QuoteBand';
+import type { Collection, Product } from '../../types';
 
 export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState<any[]>([]);
-  const [collections, setCollections] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const activeCollection = searchParams.get('colecao') || '';
+  const activeSlug = searchParams.get('colecao') || '';
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
       try {
         const [collectionsRes, productsRes] = await Promise.all([
-          api.get('/collections?public=true'),
-          api.get(`/products?public=true${activeCollection ? `&collection=${activeCollection}` : ''}`)
+          api.get<Collection[]>('/collections?public=true'),
+          api.get<Product[]>('/products?public=true'),
         ]);
         setCollections(collectionsRes.data);
         setProducts(productsRes.data);
@@ -30,109 +32,152 @@ export function Catalog() {
     };
 
     fetchData();
-  }, [activeCollection]);
+  }, []);
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const countByCollection = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const product of products) {
+      if (product.collection) {
+        counts.set(product.collection.slug, (counts.get(product.collection.slug) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [products]);
+
+  const activeCollection = collections.find((c) => c.slug === activeSlug);
+
+  const visibleProducts = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return products.filter(
+      (product) =>
+        (!activeSlug || product.collection?.slug === activeSlug) &&
+        (!term || product.name.toLowerCase().includes(term)),
+    );
+  }, [products, activeSlug, search]);
+
+  const clearFilters = () => {
+    setSearch('');
+    setSearchParams({});
+  };
+
+  // No celular os filtros são pílulas em rolagem horizontal; no desktop, lista lateral.
+  const filterButtonClass = (active: boolean) =>
+    `flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm transition-colors lg:w-full lg:justify-between lg:rounded-lg lg:border-transparent lg:px-3 ${
+      active
+        ? 'border-primary bg-primary font-semibold text-white lg:border-primary'
+        : 'border-line bg-white text-ink-soft hover:text-primary lg:bg-transparent lg:hover:bg-surface-mid'
+    }`;
+
+  const filters = [
+    { slug: '', name: 'Todos os moldes', count: products.length },
+    ...collections.map((c) => ({ slug: c.slug, name: c.name, count: countByCollection.get(c.slug) ?? 0 })),
+  ];
 
   return (
-    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col lg:flex-row gap-8">
-          
-          {/* Sidebar Filters */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="sticky top-28 space-y-8">
-              <div>
-                <h3 className="font-heading font-bold text-munidark uppercase tracking-wider mb-4">Buscar</h3>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Nome do molde..."
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-munipink/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-munipink/50 focus:border-munipink transition-all font-sans text-munidark"
-                  />
-                  <Search className="w-4 h-4 text-munidark/40 absolute left-3.5 top-3.5" />
-                </div>
-              </div>
+    <div className="flex-1">
+      <div className="container-page pt-5 sm:pt-10">
+        {/* Faixa de abertura */}
+        <section className="rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+          <p className="eyebrow tracking-[0.2em]">Catálogo</p>
+          <h1 className="heading-1 mt-3">
+            {activeCollection ? activeCollection.name : 'Catálogo de moldes'}
+          </h1>
+          <p className="mt-3 max-w-xl text-ink-soft sm:text-lg">
+            Escolha os modelos e peça o orçamento da quantidade que você precisa.
+          </p>
+          <div className="relative mt-6 max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar no catálogo..."
+              aria-label="Buscar pelo nome do molde"
+              className="field rounded-full bg-white pl-12"
+            />
+          </div>
+        </section>
+      </div>
 
-              <div>
-                <h3 className="font-heading font-bold text-munidark uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <FolderTree className="w-4 h-4 text-munigreen" /> Coleções
-                </h3>
-                <ul className="space-y-1 font-sans">
-                  <li>
-                    <button
-                      onClick={() => setSearchParams({})}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!activeCollection ? 'bg-munigreen text-white shadow-md shadow-munigreen/20' : 'text-munidark/70 hover:bg-munipink/10 hover:text-munidark'}`}
-                    >
-                      Todos os Moldes
-                    </button>
-                  </li>
-                  {collections.map(c => (
-                    <li key={c.id}>
-                      <button
-                        onClick={() => setSearchParams({ colecao: c.slug })}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${activeCollection === c.slug ? 'bg-munigreen text-white shadow-md shadow-munigreen/20' : 'text-munidark/70 hover:bg-munipink/10 hover:text-munidark'}`}
-                      >
-                        {c.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      {/* Filtros fixos abaixo do cabeçalho no celular */}
+      <div className="sticky top-16 z-30 mt-4 bg-surface/95 backdrop-blur-sm lg:hidden">
+        <ul className="no-scrollbar flex gap-2 overflow-x-auto px-5 py-3 sm:px-8" aria-label="Filtrar por linha">
+          {filters.map((filter) => (
+            <li key={filter.slug} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => setSearchParams(filter.slug ? { colecao: filter.slug } : {})}
+                aria-pressed={activeSlug === filter.slug}
+                className={filterButtonClass(activeSlug === filter.slug)}
+              >
+                {filter.name}
+                <span className="text-xs opacity-70">{filter.count}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="container-page flex gap-12 pb-14 pt-4 sm:pb-24 lg:pt-12">
+        <aside className="hidden w-60 shrink-0 lg:block">
+          <div className="sticky top-28">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Linha</h2>
+            <ul className="mt-5 space-y-1">
+              {filters.map((filter) => (
+                <li key={filter.slug}>
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams(filter.slug ? { colecao: filter.slug } : {})}
+                    aria-pressed={activeSlug === filter.slug}
+                    className={filterButtonClass(activeSlug === filter.slug)}
+                  >
+                    {filter.name}
+                    <span className="text-xs opacity-70">{filter.count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={clearFilters} className="btn btn-outline mt-8 w-full text-ink-soft">
+              Limpar filtros
+            </button>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <p className="mb-5 text-sm text-ink-soft sm:mb-8" aria-live="polite">
+            {loading
+              ? 'Carregando moldes...'
+              : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
+          </p>
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-white shadow-soft" />
+              ))}
             </div>
-          </aside>
-
-          {/* Product Grid */}
-          <main className="flex-1">
-            <div className="mb-8 bg-white p-8 rounded-3xl border border-munipink/10 shadow-sm">
-              <h1 className="font-heading text-3xl font-bold text-munidark tracking-tight">Catálogo de Moldes</h1>
-              <p className="font-sans text-munidark/70 mt-2">
-                {activeCollection 
-                  ? `Exibindo produtos da coleção: ${collections.find(c => c.slug === activeCollection)?.name || activeCollection}` 
-                  : 'Navegue por toda nossa coleção de moldes de alta qualidade.'}
+          ) : visibleProducts.length === 0 ? (
+            <div className="card px-6 py-14 text-center">
+              <h2 className="heading-3">Nenhum molde encontrado</h2>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
+                Não há moldes para a busca ou a linha selecionada. Se procura um modelo específico,
+                fale com a gente.
               </p>
+              <button type="button" onClick={clearFilters} className="btn btn-outline mt-6">
+                Limpar filtros
+              </button>
             </div>
-
-            {loading ? (
-              <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-munigreen border-t-transparent rounded-full animate-spin"></div></div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-munipink/10 p-16 text-center shadow-sm">
-                <Search className="w-12 h-12 text-munidark/20 mx-auto mb-4" />
-                <h3 className="font-heading text-xl font-bold text-munidark mb-2">Nenhum molde encontrado</h3>
-                <p className="font-sans text-munidark/60 max-w-md mx-auto">Não encontramos nenhum molde correspondente à sua busca ou filtro atual.</p>
-                <button onClick={() => {setSearch(''); setSearchParams({});}} className="mt-6 text-munipink font-bold hover:text-[#a67c79]">Limpar filtros</button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                {filteredProducts.map((product) => (
-                  <Link key={product.id} to={`/molde/${product.slug}`} className="group bg-white rounded-[2rem] border border-munipink/10 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-munipink/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
-                    <div className="aspect-square bg-munibg relative overflow-hidden">
-                      {product.images && product.images.length > 0 ? (
-                        <img src={`http://localhost:3333${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-munidark/30"><ImageIcon className="w-8 h-8 opacity-50" /></div>
-                      )}
-                    </div>
-                    <div className="p-4 sm:p-6 flex flex-col flex-1">
-                      <h3 className="font-heading font-bold text-munidark text-lg leading-tight mb-2 group-hover:text-munigreen transition-colors line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p className="font-sans text-xs sm:text-sm text-munidark/60 mb-5">{product.dimensions || 'Dimensões não informadas'}</p>
-                      <div className="mt-auto">
-                        <span className="inline-flex items-center justify-center w-full bg-munilight text-munigreen text-sm font-bold py-3 rounded-xl group-hover:bg-munigreen group-hover:text-white transition-colors">
-                          Detalhes
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </main>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      <QuoteBand />
     </div>
   );
 }

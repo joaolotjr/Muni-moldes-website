@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Sem VITE_API_URL, usa o mesmo endereço pelo qual o site foi aberto (localhost, IP da rede etc.).
+export const API_URL: string =
+  import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:3333`;
+
 export const api = axios.create({
-  baseURL: 'http://localhost:3333',
+  baseURL: API_URL,
 });
 
 // Add a request interceptor to attach the JWT token
@@ -16,7 +20,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // No próprio login, o 401 é só "credenciais inválidas": a tela mostra a mensagem.
+    const isLoginAttempt = error.config?.url?.includes('/auth/login');
+    if (error.response?.status === 401 && !isLoginAttempt) {
       logout();
     }
     return Promise.reject(error);

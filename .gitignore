@@ -2,3 +2,8 @@
 
 # Diretório de dados do PostgreSQL gerenciado pelo Docker
 pgdata/
+# Segredos do docker-compose (Garage)
+.env
+
+# Dados do Garage (fotos e metadados) gerenciados pelo Docker
+garage-data/

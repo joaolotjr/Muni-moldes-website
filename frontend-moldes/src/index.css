@@ -1,37 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  /* Paleta pública: design system "Muni Moldes" do Stitch, derivada do logo */
+  --color-primary: #825151; /* salmão escuro: botões e destaques */
+  --color-primary-dark: #5d3232;
+  --color-primary-soft: #d69a9a; /* salmão do logo */
+  --color-primary-pale: #ffdad9;
+  --color-secondary: #45645e; /* verde acinzentado */
+  --color-secondary-dark: #2d4c46;
+  --color-secondary-soft: #c7eae1;
+  --color-surface: #fbf9f4; /* fundo bege claro */
+  --color-surface-low: #f5f3ee;
+  --color-surface-mid: #f0eee9;
+  --color-surface-high: #eae8e3;
+  --color-ink: #1b1c19; /* texto principal */
+  --color-ink-soft: #514343; /* texto secundário */
+  --color-outline: #837373;
+  --color-line: #d6c2c1; /* bordas */
+  --color-line-soft: #e4e2dd;
+  --color-whatsapp: #128c7e;
 
-:root {
-  font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  
-  /* Suavidade na rolagem */
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-serif: 'Noto Serif', Georgia, serif;
+  --font-heading: 'Noto Serif', Georgia, serif;
+
+  /* Sombra difusa "de silicone" */
+  --shadow-soft: 0 20px 30px rgb(48 49 46 / 0.05);
+  --shadow-lift: 0 10px 18px rgb(48 49 46 / 0.08);
+}
+
+html {
   scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-  background-color: #F5F0E6; /* munilight */
-  color: #322d2d; /* munidark */
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Estilização da barra de rolagem (Opcional) */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #F5F0E6;
-}
-::-webkit-scrollbar-thumb {
-  background: #DC96A0; /* munipink */
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #64968C; /* munigreen */
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8;
+  }
+
+  /* Títulos em serifa. Tamanhos pensados primeiro para o celular. */
+  .heading-1 {
+    @apply font-serif text-[2rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-[2.6rem] lg:text-5xl lg:leading-[1.15];
+  }
+  .heading-2 {
+    @apply font-serif text-[1.6rem] font-semibold leading-[1.25] tracking-[-0.01em] sm:text-3xl lg:text-4xl lg:leading-[1.25];
+  }
+  .heading-3 {
+    @apply font-serif text-xl font-semibold leading-snug lg:text-2xl;
+  }
+
+  /* Rótulo pequeno em caixa alta */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.16em] text-primary;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em];
+  }
+
+  .btn {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-transparent px-6 py-3 text-center text-[13px] font-semibold uppercase tracking-[0.08em] transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98];
+  }
+  .btn-primary {
+    @apply bg-primary text-white shadow-soft hover:bg-primary-dark;
+  }
+  .btn-outline {
+    @apply border-line bg-white text-ink hover:border-primary hover:text-primary;
+  }
+  .btn-secondary {
+    @apply border-secondary bg-transparent text-secondary hover:bg-secondary-soft;
+  }
+  .btn-whatsapp {
+    @apply bg-whatsapp text-white shadow-soft hover:brightness-95;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line-soft/70 bg-white shadow-soft;
+  }
+
+  /* 16px no campo evita o zoom automático do iOS ao focar */
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-4 py-3 text-base text-ink transition-colors placeholder:text-outline/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  }
+  .field-label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-ink;
+  }
+
+  /* Rolagem horizontal sem barra visível (filtros no celular) */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

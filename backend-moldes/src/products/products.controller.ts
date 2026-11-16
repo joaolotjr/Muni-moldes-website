@@ -3,12 +3,15 @@ import { ProductsService } from './products.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Product } from './entities/product.entity';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { StorageService } from '../storage/storage.service';
+import { imageUploadOptions } from '../storage/image-upload';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Get()
   findAll(@Query('collection') collectionSlug?: string, @Query('public') isPublic?: string) {
@@ -40,24 +43,14 @@ export class ProductsController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/images')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        cb(null, `${uniqueSuffix}${ext}`);
-      }
-    })
-  }))
+  @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body('isCover') isCover?: string
   ) {
-    // The file is saved locally to ./uploads.
-    // In MVP we serve the folder /uploads as static assets.
-    const imageUrl = `/uploads/${file.filename}`;
+    // A imagem vai para o armazenamento (S3 ou pasta local) e é servida em /uploads/<nome>.
+    const imageUrl = await this.storage.saveImage(file);
     return this.productsService.addImage(id, imageUrl, isCover === 'true');
   }
 

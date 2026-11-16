@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { ArrowLeft, Save, ImagePlus, Loader2, X, Trash2 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -8,7 +8,6 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 export function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
@@ -247,7 +246,7 @@ export function ProductForm() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               {images.map((img) => (
                 <div key={img.id} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group">
-                  <img src={`http://localhost:3333${img.image_url}`} alt="Product" className="w-full h-full object-cover" />
+                  <img src={`${API_URL}${img.image_url}`} alt="Product" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemoveUploadedImage(img.id)}

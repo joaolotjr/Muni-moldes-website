@@ -1,123 +1,94 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, Heart, Sparkles, Star } from 'lucide-react';
+import { QuoteBand } from '../../components/public/QuoteBand';
+
+const principles = [
+  {
+    title: 'Acabamento manual',
+    text: 'Cada molde é finalizado à mão e conferido antes de sair da fábrica.',
+  },
+  {
+    title: 'Silicone de qualidade',
+    text: 'Material escolhido para desmoldar bem e aguentar o uso repetido da produção.',
+  },
+  {
+    title: 'Detalhe fiel',
+    text: 'Vincos, curvas e texturas saem definidos na peça final, molde após molde.',
+  },
+];
 
 export function About() {
   return (
-    <div className="flex-1 bg-munibg animate-in fade-in duration-500">
-      
-      {/* Hero Section */}
-      <section className="relative py-24 bg-munilight border-b border-munipink/10 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/noisy-grid.png')] opacity-10 mix-blend-multiply"></div>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-munigreen rounded-full mix-blend-multiply filter blur-[100px] opacity-20"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-munipink rounded-full mix-blend-multiply filter blur-[100px] opacity-20"></div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-bold text-munidark tracking-tight mb-6">
-            Nossa História
-          </h1>
-          <p className="font-sans text-lg text-munidark/80 max-w-2xl mx-auto leading-relaxed">
-            Da confeitaria artesanal à criação de ferramentas que inspiram outros confeiteiros a realizarem seus sonhos. Conheça a jornada da Muni Moldes.
-          </p>
-        </div>
-      </section>
-
-      {/* Main Story */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
-            
-            <div className="flex-1 relative">
-              <div className="absolute -inset-4 bg-munigreen/10 rounded-[3rem] transform -rotate-3"></div>
-              <div className="relative aspect-[4/5] w-full max-w-md mx-auto bg-white rounded-[2rem] border-8 border-white shadow-2xl overflow-hidden flex items-center justify-center">
-                <div className="text-munidark/30 text-center p-6 font-sans text-sm">
-                  <Heart className="w-16 h-16 mx-auto mb-2 opacity-50" />
-                  [Espaço Reservado para<br/>Foto da Mariluci / Fábrica]
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 space-y-8">
-              <div>
-                <h2 className="font-heading text-3xl font-bold text-munidark mb-4">A Paixão que Virou Negócio</h2>
-                <p className="font-sans text-munidark/80 leading-relaxed">
-                  A história da Muni Moldes não começou em uma fábrica, mas sim em uma cozinha. Tudo começou com a Mariluci, que tinha uma paixão genuína por confeitaria. Ao tentar criar doces com detalhes únicos, ela percebeu que o mercado carecia de moldes que fossem não apenas bonitos, mas que tivessem uma qualidade excepcional e durabilidade.
-                </p>
-              </div>
-              
-              <div>
-                <p className="font-sans text-munidark/80 leading-relaxed">
-                  Movida pela vontade de criar o perfeito "buchinho" para um cupcake e outras decorações incríveis, Mariluci começou a testar e produzir seus próprios moldes de silicone. O que era para ser uma ferramenta própria virou sucesso entre outras confeiteiras.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-heading text-xl font-bold text-munidark mb-3">Hoje</h3>
-                <p className="font-sans text-munidark/80 leading-relaxed">
-                  A Muni Moldes é uma fábrica dedicada a produzir ferramentas perfeitas para confeitaria e artesanato, sempre mantendo a essência artesanal, o cuidado em cada detalhe e a vontade de ver seus clientes brilharem.
-                </p>
-              </div>
-            </div>
-
+    <div className="flex-1">
+      <div className="container-page py-10 sm:py-16">
+        {/* Abertura */}
+        <section className="grid items-center gap-8 md:grid-cols-12 md:gap-16">
+          <div className="md:col-span-6 lg:col-span-5">
+            <p className="eyebrow">Sobre nós</p>
+            <h1 className="heading-1 mt-4">Moldes feitos por quem conhece a rotina da confeitaria.</h1>
+            <p className="mt-5 text-base leading-relaxed text-ink-soft sm:text-lg">
+              A Muni Moldes nasceu dentro de uma cozinha e hoje fabrica moldes para confeitarias,
+              lojistas e revendedores.
+            </p>
           </div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className="py-20 bg-white border-y border-munipink/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="font-heading text-3xl font-bold text-munidark mb-4">O que nos move</h2>
-            <p className="font-sans text-munidark/70 max-w-2xl mx-auto">Nossos valores estão em cada molde que enviamos.</p>
+          <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white shadow-soft md:col-span-6 md:aspect-auto md:h-[26rem] lg:col-span-7">
+            <img src="/logo.png" alt="Selo Muni Moldes, fábrica de moldes" className="h-3/5 object-contain" />
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-munibg p-8 rounded-[2rem] border border-munipink/10 text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-munipink/10">
-                <Heart className="w-8 h-8 text-munipink" />
-              </div>
-              <h3 className="font-heading text-xl font-bold text-munidark mb-3">Feito com Carinho</h3>
-              <p className="font-sans text-munidark/70 text-sm leading-relaxed">
-                Cada molde é finalizado manualmente. Acreditamos que o amor dedicado na fábrica se reflete na beleza do seu trabalho final.
+        {/* A fundadora */}
+        <section className="mt-12 rounded-2xl border border-line/40 bg-surface-low p-6 sm:mt-16 sm:p-10 lg:p-16">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+                <span className="h-px w-8 bg-secondary" />
+                A fundadora
               </p>
+              <h2 className="heading-2 mt-4">A história da Mariluci</h2>
             </div>
-
-            <div className="bg-munibg p-8 rounded-[2rem] border border-munipink/10 text-center relative transform md:-translate-y-4">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-munipink/10">
-                <Star className="w-8 h-8 text-munigreen" />
-              </div>
-              <h3 className="font-heading text-xl font-bold text-munidark mb-3">Qualidade Premium</h3>
-              <p className="font-sans text-munidark/70 text-sm leading-relaxed">
-                Utilizamos o melhor silicone do mercado. Nossos moldes garantem uma desmoldagem perfeita e duram por anos na sua cozinha.
+            <div className="space-y-5 leading-relaxed text-ink-soft sm:text-lg">
+              <p>
+                A história da Muni Moldes não começou em uma fábrica, e sim em uma cozinha. A
+                Mariluci, confeiteira, queria criar doces com detalhes únicos e percebeu que faltavam
+                no mercado moldes que fossem bonitos, bem acabados e duráveis.
               </p>
-            </div>
-
-            <div className="bg-munibg p-8 rounded-[2rem] border border-munipink/10 text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-munipink/10">
-                <Sparkles className="w-8 h-8 text-[#D4AF37]" />
-              </div>
-              <h3 className="font-heading text-xl font-bold text-munidark mb-3">Detalhes Únicos</h3>
-              <p className="font-sans text-munidark/70 text-sm leading-relaxed">
-                Nossos mestres se certificam que cada vinco, curva e textura saia perfeita, elevando o nível dos seus doces e artesanatos.
+              <p>
+                Ela passou a testar e produzir os próprios moldes de silicone. O que era uma
+                ferramenta para uso próprio chamou a atenção de outras confeiteiras, e os pedidos
+                começaram a chegar.
+              </p>
+              <p className="border-l-2 border-primary-soft pl-4 text-ink">
+                Hoje a Muni Moldes é uma fábrica dedicada a moldes para confeitaria e artesanato,
+                com o mesmo cuidado no detalhe que deu origem a tudo.
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section className="py-24 text-center">
-        <div className="max-w-3xl mx-auto px-4">
-          <h2 className="font-heading text-3xl font-bold text-munidark mb-6">Pronto para encantar?</h2>
-          <p className="font-sans text-lg text-munidark/80 mb-8">
-            Faça parte da nossa história criando doces incríveis com os moldes da Muni.
-          </p>
-          <Link to="/catalogo" className="inline-flex items-center gap-2 bg-munipink hover:bg-[#a67c79] text-white px-8 py-4 rounded-full font-bold transition-all shadow-xl shadow-munipink/20 hover:-translate-y-0.5 font-sans">
-            Explorar o Catálogo
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
-      </section>
+        {/* Como trabalhamos */}
+        <section className="mt-14 sm:mt-24">
+          <div className="text-center">
+            <h2 className="heading-2">Como trabalhamos</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-ink-soft">O que você recebe em cada molde.</p>
+          </div>
+          <div className="mt-8 grid gap-4 sm:mt-12 md:grid-cols-3 md:gap-6">
+            {principles.map((item, index) => (
+              <div
+                key={item.title}
+                className={`rounded-2xl p-6 sm:p-10 ${
+                  index === 1 ? 'border border-primary-soft/40 bg-primary-soft/10' : 'card'
+                }`}
+              >
+                <span className={`font-serif text-2xl font-semibold ${index === 1 ? 'text-primary' : 'text-secondary'}`}>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <h3 className="heading-3 mt-2">{item.title}</h3>
+                <p className="mt-2 leading-relaxed text-ink-soft">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
 
+      <QuoteBand />
     </div>
   );
 }
