@@ -93,6 +93,26 @@ body {
     @apply mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-ink;
   }
 
+  /* ---- Painel administrativo */
+  .panel {
+    @apply rounded-xl border border-line-soft bg-white p-5 shadow-soft sm:p-8;
+  }
+  .label-caps {
+    @apply mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-surface-low px-4 py-3 text-base text-ink transition-colors placeholder:text-outline/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  }
+  .btn-plain {
+    @apply normal-case tracking-[0.03em];
+  }
+  .icon-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-mid hover:text-primary disabled:pointer-events-none disabled:opacity-30;
+  }
+  .status-chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
   /* Rolagem horizontal sem barra visível (filtros no celular) */
   .no-scrollbar {
     scrollbar-width: none;

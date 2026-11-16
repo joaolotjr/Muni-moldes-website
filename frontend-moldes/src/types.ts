@@ -2,6 +2,10 @@ export interface Collection {
   id: string;
   name: string;
   slug: string;
+  // Campos de visibilidade, usados no painel.
+  is_active?: boolean;
+  active_from?: string | null;
+  active_until?: string | null;
 }
 
 export interface ProductImage {
@@ -18,6 +22,11 @@ export interface Product {
   final_weight: string | null;
   collection: Collection | null;
   images: ProductImage[];
+  // Campos de visibilidade, usados no painel.
+  collection_id?: string | null;
+  is_active?: boolean;
+  active_from?: string | null;
+  active_until?: string | null;
 }
 
 export type NewsCategory = 'lancamentos' | 'eventos' | 'tutoriais' | 'novidades';

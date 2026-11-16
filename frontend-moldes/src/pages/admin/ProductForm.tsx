@@ -1,314 +1,418 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronDown, ChevronRight, CloudUpload, Eye, Info, Loader2, Plus, Ruler, Save, X } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
-import { ArrowLeft, Save, ImagePlus, Loader2, X, Trash2 } from 'lucide-react';
+import { apiErrorMessage } from '../../utils/apiError';
+import { isoToLocalInput, localInputToIso } from '../../utils/dates';
+import { slugify } from '../../utils/slugify';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import { VisibilityFields } from '../../components/admin/VisibilityFields';
+import type { Collection, Product, ProductImage } from '../../types';
+
+const ACCEPTED_IMAGES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+const emptyForm = {
+  name: '',
+  slug: '',
+  description: '',
+  dimensions: '',
+  final_weight: '',
+  collection_id: '',
+  is_active: true,
+  active_from: '',
+  active_until: '',
+};
 
 export function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const [loading, setLoading] = useState(false);
-  const [collections, setCollections] = useState<any[]>([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    dimensions: '',
-    final_weight: '',
-    collection_id: '',
-    is_active: true,
-    active_from: '',
-    active_until: '',
-  });
-  const [images, setImages] = useState<any[]>([]);
-  const [localImages, setLocalImages] = useState<File[]>([]);
   const { showToast } = useToast();
   const { confirm } = useConfirm();
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const formatDateForInput = (dateString: string | null) => 
-    dateString ? new Date(dateString).toISOString().slice(0, 16) : '';
+  const [loadingProduct, setLoadingProduct] = useState(Boolean(id));
+  const [saving, setSaving] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  // Ao criar, o endereço acompanha o nome até ser editado à mão. Ao editar um produto
+  // existente ele não muda sozinho, para não quebrar links já compartilhados.
+  const [slugLocked, setSlugLocked] = useState(Boolean(id));
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [queue, setQueue] = useState<File[]>([]);
+
+  const update = (changes: Partial<typeof emptyForm>) => setForm((current) => ({ ...current, ...changes }));
 
   useEffect(() => {
-    // Fetch collections for dropdown
-    api.get('/collections').then((res) => setCollections(res.data));
+    api
+      .get<Collection[]>('/collections')
+      .then((res) => setCollections(res.data))
+      .catch(() => showToast('Erro ao carregar as categorias.', 'error'));
 
-    if (id) {
-      // Edit mode: fetch product data
-      // For MVP we just fetch all and find, or we can use a dedicated endpoint (slug based)
-      // Actually we have GET /products/:slug, but here we have ID. Wait, we don't have GET /products/:id in the backend, we have GET /products/:slug. Let's fetch all and filter for MVP simplicity.
-      api.get('/products').then((res) => {
-        const product = res.data.find((p: any) => p.id === id);
-        if (product) {
-          setFormData({
-            name: product.name,
-            slug: product.slug,
-            description: product.description || '',
-            dimensions: product.dimensions || '',
-            final_weight: product.final_weight || '',
-            collection_id: product.collection_id || '',
-            is_active: product.is_active,
-            active_from: formatDateForInput(product.active_from),
-            active_until: formatDateForInput(product.active_until),
-          });
-          setImages(product.images || []);
+    if (!id) return;
+    // A API só busca produto pelo endereço; aqui temos o id, então procuramos na lista.
+    api
+      .get<Product[]>('/products')
+      .then((res) => {
+        const product = res.data.find((item) => item.id === id);
+        if (!product) {
+          showToast('Produto não encontrado.', 'error');
+          navigate('/admin/produtos');
+          return;
         }
-      });
-    }
+        setForm({
+          name: product.name,
+          slug: product.slug,
+          description: product.description ?? '',
+          dimensions: product.dimensions ?? '',
+          final_weight: product.final_weight ?? '',
+          collection_id: product.collection_id ?? '',
+          is_active: product.is_active !== false,
+          active_from: isoToLocalInput(product.active_from),
+          active_until: isoToLocalInput(product.active_until),
+        });
+        setImages(product.images ?? []);
+      })
+      .catch(() => showToast('Erro ao carregar o produto.', 'error'))
+      .finally(() => setLoadingProduct(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // Endereços temporários para mostrar as fotos escolhidas antes do envio.
+  const previews = useMemo(() => queue.map((file) => URL.createObjectURL(file)), [queue]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
-    const payload = {
-      ...formData,
-      active_from: formData.active_from ? new Date(formData.active_from).toISOString() : null,
-      active_until: formData.active_until ? new Date(formData.active_until).toISOString() : null,
-    };
-
-    try {
-      let productId = id;
-      if (id) {
-        await api.put(`/products/${id}`, payload);
-      } else {
-        const res = await api.post('/products', payload);
-        productId = res.data.id;
-      }
-
-      if (productId && localImages.length > 0) {
-        for (let i = 0; i < localImages.length; i++) {
-          const formDataObj = new FormData();
-          formDataObj.append('file', localImages[i]);
-          if (!id && i === 0) formDataObj.append('isCover', 'true');
-          await api.post(`/products/${productId}/images`, formDataObj, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-        }
-      }
-
-      navigate('/admin/produtos');
-    } catch (error) {
-      showToast('Erro ao salvar produto. Verifique os dados e tente novamente.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLocalImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      const file = e.target.files[0];
-      
-      if (localImages.some(f => f.name === file.name && f.size === file.size)) {
-        showToast('Esta foto já foi adicionada na fila de upload!', 'error');
-        e.target.value = '';
-        return;
-      }
-      
-      setLocalImages([...localImages, file]);
-    }
+  const handleFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    const chosen = Array.from(e.target.files ?? []);
     e.target.value = '';
+    const accepted: File[] = [];
+    for (const file of chosen) {
+      if (!ACCEPTED_IMAGES.includes(file.type)) {
+        showToast(`"${file.name}" não é uma imagem JPG, PNG, WebP, GIF ou AVIF.`, 'error');
+      } else if (file.size > MAX_IMAGE_BYTES) {
+        showToast(`"${file.name}" passa de 10 MB.`, 'error');
+      } else if ([...queue, ...accepted].some((item) => item.name === file.name && item.size === file.size)) {
+        showToast(`"${file.name}" já está na fila.`, 'error');
+      } else {
+        accepted.push(file);
+      }
+    }
+    if (accepted.length > 0) setQueue([...queue, ...accepted]);
   };
 
-  const handleRemoveLocalImage = (index: number) => {
-    setLocalImages(localImages.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveUploadedImage = async (imageId: string) => {
+  const removeUploaded = (image: ProductImage) => {
     confirm({
-      title: 'Excluir Foto',
-      message: 'Tem certeza que deseja excluir permanentemente esta foto?',
+      title: 'Excluir foto',
+      message: 'Tem certeza que deseja excluir esta foto? Ela sai do site na hora.',
       confirmText: 'Excluir',
       onConfirm: async () => {
         try {
-          await api.delete(`/products/${id}/images/${imageId}`);
-          setImages(images.filter(img => img.id !== imageId));
-          showToast('Foto excluída com sucesso.', 'success');
+          await api.delete(`/products/${id}/images/${image.id}`);
+          setImages((current) => current.filter((item) => item.id !== image.id));
+          showToast('Foto excluída.', 'success');
         } catch (error) {
-          showToast('Erro ao excluir foto.', 'error');
+          showToast(apiErrorMessage(error, 'Erro ao excluir a foto.'), 'error');
         }
-      }
+      },
     });
   };
 
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const slug = slugify(form.slug);
+    if (!form.name.trim()) return showToast('Digite o nome do produto.', 'error');
+    if (!slug) return showToast('Digite o endereço (URL) do produto.', 'error');
+
+    setSaving(true);
+    const payload = {
+      name: form.name.trim(),
+      slug,
+      description: form.description.trim() || null,
+      dimensions: form.dimensions.trim() || null,
+      final_weight: form.final_weight.trim() || null,
+      collection_id: form.collection_id || null,
+      is_active: form.is_active,
+      active_from: localInputToIso(form.active_from),
+      active_until: localInputToIso(form.active_until),
+    };
+
+    let productId = id;
+    try {
+      if (productId) {
+        await api.put(`/products/${productId}`, payload);
+      } else {
+        const res = await api.post<Product>('/products', payload);
+        productId = res.data.id;
+      }
+    } catch (error) {
+      setSaving(false);
+      return showToast(
+        apiErrorMessage(error, 'Erro ao salvar o produto. Confira se o endereço (URL) já não é usado por outro.'),
+        'error',
+      );
+    }
+
+    // Os dados já foram salvos; as fotos vão uma a uma.
+    let sent = 0;
+    try {
+      for (const file of queue) {
+        const body = new FormData();
+        body.append('file', file);
+        if (images.length === 0 && sent === 0) body.append('isCover', 'true');
+        await api.post(`/products/${productId}/images`, body);
+        sent += 1;
+      }
+    } catch (error) {
+      setSaving(false);
+      showToast(
+        `O produto foi salvo, mas ${queue.length - sent} foto(s) não: ${apiErrorMessage(error, 'erro no envio.')}`,
+        'error',
+      );
+      return navigate(`/admin/produtos/${productId}`, { replace: true });
+    }
+
+    showToast('Produto salvo!', 'success');
+    navigate('/admin/produtos');
+  };
+
+  if (loadingProduct) {
+    return <p className="py-20 text-center text-ink-soft">Carregando produto...</p>;
+  }
+
+  const totalImages = images.length + queue.length;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl relative">
-      <div className="flex items-center gap-4">
-        <Link to="/admin/produtos" className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+    <form onSubmit={handleSubmit}>
+      <div className="mb-6 flex flex-col items-start justify-between gap-5 md:mb-10 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            {id ? 'Editar Molde' : 'Novo Molde'}
-          </h1>
-          <p className="text-slate-500 mt-1">Preencha os detalhes do produto para o catálogo.</p>
+          <nav className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft" aria-label="Você está em">
+            <Link to="/admin/produtos" className="flex min-h-11 items-center hover:text-primary">Produtos</Link>
+            <ChevronRight className="h-4 w-4" />
+            <span>{id ? 'Editar' : 'Novo'}</span>
+          </nav>
+          <h1 className="heading-1">{id ? 'Editar produto' : 'Novo produto'}</h1>
+          <p className="mt-2 max-w-2xl text-ink-soft sm:text-lg">
+            Nome, medidas, fotos e categoria do molde, como aparecem no catálogo.
+          </p>
+        </div>
+        <div className="flex w-full items-center gap-3 md:w-auto">
+          <Link to="/admin/produtos" className="btn btn-outline btn-plain flex-1 md:flex-none">
+            Cancelar
+          </Link>
+          <button type="submit" disabled={saving} className="btn btn-primary btn-plain flex-1 disabled:pointer-events-none disabled:opacity-60 md:flex-none">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar produto
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Nome do Produto</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                placeholder="Ex: Molde Coração Lapidado"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Slug (URL)</label>
-              <input
-                type="text"
-                required
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Descrição</label>
-            <textarea
-              rows={4}
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              placeholder="Descreva os detalhes do molde..."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Dimensões (cm)</label>
-              <input
-                type="text"
-                value={formData.dimensions}
-                onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                placeholder="10x10x5"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Peso Médio do Molde</label>
-              <input
-                type="text"
-                value={formData.final_weight}
-                onChange={(e) => setFormData({ ...formData, final_weight: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                placeholder="250g"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Coleção</label>
-              <select
-                value={formData.collection_id}
-                onChange={(e) => setFormData({ ...formData, collection_id: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              >
-                <option value="">Selecione...</option>
-                {collections.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Agendar Início (Opcional)</label>
-              <input
-                type="datetime-local"
-                value={formData.active_from}
-                onChange={(e) => setFormData({ ...formData, active_from: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Agendar Fim (Opcional)</label>
-              <input
-                type="datetime-local"
-                value={formData.active_until}
-                onChange={(e) => setFormData({ ...formData, active_until: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Fotos do Produto</h3>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-              {images.map((img) => (
-                <div key={img.id} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group">
-                  <img src={`${API_URL}${img.image_url}`} alt="Product" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveUploadedImage(img.id)}
-                    className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-lg text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50 hover:text-rose-600 shadow-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+      <div className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
+        {/* Coluna principal */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-8 lg:gap-8">
+          <section className="panel">
+            <h2 className="heading-3 mb-6 flex items-center gap-2">
+              <Info className="h-6 w-6 text-outline" />
+              Informações básicas
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="product-name" className="label-caps">Nome do produto</label>
+                <input
+                  id="product-name"
+                  type="text"
+                  required
+                  maxLength={200}
+                  value={form.name}
+                  onChange={(e) =>
+                    update(slugLocked ? { name: e.target.value } : { name: e.target.value, slug: slugify(e.target.value) })
+                  }
+                  placeholder="Ex.: Ovo texturizado 350 g"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="product-slug" className="label-caps">Endereço (URL)</label>
+                <div className="flex items-center rounded-lg border border-line bg-surface-low transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary sm:max-w-lg">
+                  <span className="pl-4 text-outline">/molde/</span>
+                  <input
+                    id="product-slug"
+                    type="text"
+                    required
+                    maxLength={220}
+                    value={form.slug}
+                    onChange={(e) => {
+                      setSlugLocked(true);
+                      update({ slug: e.target.value });
+                    }}
+                    onBlur={() => update({ slug: slugify(form.slug) })}
+                    className="min-w-0 flex-1 border-none bg-transparent py-3 pr-4 text-base text-ink focus:outline-none"
+                  />
                 </div>
-              ))}
-              
-              {localImages.map((file, index) => (
-                <div key={index} className="aspect-square rounded-xl overflow-hidden border-2 border-indigo-500 relative group">
-                  <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-indigo-900/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-xs font-medium mb-2">Na fila de envio</span>
+                {id && (
+                  <p className="mt-2 text-[13px] text-outline">
+                    Mudar o endereço quebra links deste produto que já foram compartilhados.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="product-description" className="label-caps">Descrição</label>
+                <textarea
+                  id="product-description"
+                  rows={5}
+                  value={form.description}
+                  onChange={(e) => update({ description: e.target.value })}
+                  placeholder="Para que serve o molde, acabamento, detalhes que ajudam o cliente a escolher..."
+                  className="input resize-y"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2 className="heading-3 mb-6 flex items-center gap-2">
+              <Ruler className="h-6 w-6 text-outline" />
+              Especificações técnicas
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label htmlFor="product-dimensions" className="label-caps">Dimensões</label>
+                <input
+                  id="product-dimensions"
+                  type="text"
+                  maxLength={100}
+                  value={form.dimensions}
+                  onChange={(e) => update({ dimensions: e.target.value })}
+                  placeholder="Ex.: 17 x 12 cm"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="product-weight" className="label-caps">Peso da peça pronta</label>
+                <input
+                  id="product-weight"
+                  type="text"
+                  maxLength={50}
+                  value={form.final_weight}
+                  onChange={(e) => update({ final_weight: e.target.value })}
+                  placeholder="Ex.: 350 g"
+                  className="input"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Coluna lateral */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:gap-8">
+          <section className="panel sm:p-6">
+            <h2 className="mb-4 font-serif text-xl font-semibold">Fotos do produto</h2>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_IMAGES.join(',')}
+              onChange={handleFiles}
+              className="sr-only"
+              tabIndex={-1}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="group flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-line bg-surface-low p-6 text-center transition-colors hover:border-primary hover:bg-surface-mid"
+            >
+              <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-line-soft text-ink-soft transition-colors group-hover:bg-primary-soft group-hover:text-primary-dark">
+                <CloudUpload className="h-7 w-7" />
+              </span>
+              <span>
+                <span className="font-bold text-primary">Clique para escolher</span> as fotos
+              </span>
+              <span className="mt-1 text-sm text-outline">JPG, PNG ou WebP, até 10 MB cada</span>
+            </button>
+
+            {totalImages > 0 && (
+              <ul className="mt-4 grid grid-cols-3 gap-3">
+                {images.map((image, index) => (
+                  <li key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-line">
+                    <img src={`${API_URL}${image.image_url}`} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" />
                     <button
                       type="button"
-                      onClick={() => handleRemoveLocalImage(index)}
-                      className="bg-white/20 hover:bg-rose-500 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
+                      onClick={() => removeUploaded(image)}
+                      aria-label={`Excluir a foto ${index + 1}`}
+                      className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#ba1a1a] shadow-sm"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="h-4 w-4" />
                     </button>
-                  </div>
-                </div>
-              ))}
-              
-              <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50 transition-colors flex flex-col items-center justify-center cursor-pointer text-slate-500 hover:text-indigo-600">
-                <ImagePlus className="w-8 h-8 mb-2" />
-                <span className="text-sm font-medium">Adicionar Foto</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleLocalImageSelect}
-                  accept="image/*"
-                />
-              </label>
+                  </li>
+                ))}
+                {queue.map((file, index) => (
+                  <li key={`${file.name}-${file.size}`} className="relative aspect-square overflow-hidden rounded-lg border-2 border-secondary">
+                    <img src={previews[index]} alt={`Nova foto: ${file.name}`} className="h-full w-full object-cover" />
+                    <span className="absolute inset-x-0 bottom-0 bg-secondary px-1 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide text-white">
+                      Nova
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQueue(queue.filter((_, i) => i !== index))}
+                      aria-label={`Tirar ${file.name} da fila`}
+                      className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#ba1a1a] shadow-sm"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    aria-label="Adicionar mais fotos"
+                    className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-line bg-surface-low text-line transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <Plus className="h-6 w-6" />
+                  </button>
+                </li>
+              </ul>
+            )}
+            {queue.length > 0 && (
+              <p className="mt-3 text-[13px] font-medium text-secondary">
+                {queue.length === 1 ? '1 foto nova será enviada' : `${queue.length} fotos novas serão enviadas`} ao salvar.
+              </p>
+            )}
+          </section>
+
+          <section className="panel sm:p-6">
+            <h2 className="mb-4 font-serif text-xl font-semibold">Classificação</h2>
+            <label htmlFor="product-collection" className="label-caps">Categoria</label>
+            <div className="relative">
+              <select
+                id="product-collection"
+                value={form.collection_id}
+                onChange={(e) => update({ collection_id: e.target.value })}
+                className="input cursor-pointer appearance-none pr-10"
+              >
+                <option value="">Sem categoria</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>{collection.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-soft" />
             </div>
-            {localImages.length > 0 && <p className="text-xs text-amber-600 font-medium">As {localImages.length} foto(s) na fila serão enviadas ao salvar o produto.</p>}
-          </div>
+          </section>
 
-          <div className="pt-6 flex items-center justify-end gap-4 border-t border-slate-100">
-            <label className="flex items-center gap-2 cursor-pointer mr-auto">
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm font-medium text-slate-700">Produto Ativo no Catálogo</span>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-70 disabled:pointer-events-none disabled:transform-none"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Salvar Produto
-            </button>
-          </div>
-        </form>
+          <section className="panel sm:p-6">
+            <h2 className="mb-4 flex items-center gap-2 font-serif text-xl font-semibold">
+              <Eye className="h-5 w-5 text-outline" />
+              Visibilidade
+            </h2>
+            <VisibilityFields
+              idPrefix="product"
+              activeLabel="Ativo no catálogo"
+              value={form}
+              onChange={update}
+            />
+          </section>
+        </div>
       </div>
-    </div>
+    </form>
   );
 }
