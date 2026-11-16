@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { api, setAuthToken } from '../../services/api';
-import { Lock, Mail, Loader2 } from 'lucide-react';
+
+const inputClass =
+  'w-full rounded-lg border border-line bg-surface-low py-3.5 pl-12 text-base text-ink shadow-sm transition-colors placeholder:text-ink-soft/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -19,83 +24,112 @@ export function Login() {
       const response = await api.post('/auth/login', { email, password });
       setAuthToken(response.data.access_token);
       navigate('/admin');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    } catch (err) {
+      const message = isAxiosError(err) ? err.response?.data?.message : undefined;
+      setError(
+        typeof message === 'string' ? message : 'Erro ao fazer login. Verifique suas credenciais.',
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/20 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/20 blur-[120px] pointer-events-none"></div>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-surface px-5 py-10 font-sans text-ink">
+      {/* Fundo: degradê suave e filete no topo, como na tela do Stitch */}
+      <div className="pointer-events-none absolute inset-0 bg-radial-[at_top_right] from-surface-high via-surface to-surface opacity-70" />
+      <div className="absolute left-0 top-0 h-1 w-full bg-linear-to-r from-surface via-primary to-surface opacity-20" />
 
-      <div className="w-full max-w-md p-8 relative z-10">
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 shadow-2xl rounded-3xl p-10">
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/30 flex items-center justify-center mb-6">
-              <Lock className="w-8 h-8 text-white" />
+      <main className="relative z-10 w-full max-w-[420px]">
+        <div className="flex flex-col items-center rounded-2xl border border-line-soft bg-white p-6 shadow-soft sm:p-10">
+          <div className="mb-8 flex w-full flex-col items-center text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-line-soft bg-surface-low shadow-sm">
+              <img src="/logo.png" alt="" className="h-16 w-16" />
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Acesso Restrito</h1>
-            <p className="text-slate-400 mt-2 text-center">Painel Administrativo Muni Moldes</p>
+            <h1 className="heading-2">Muni Moldes</h1>
+            <p className="mt-2 text-ink-soft">Acesso ao painel administrativo</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="flex w-full flex-col gap-5">
             {error && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium flex items-center justify-center text-center">
+              <div role="alert" className="rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-center text-sm font-medium text-[#93000a]">
                 {error}
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
-                  <Mail className="h-5 w-5" />
-                </div>
+            <div>
+              <label htmlFor="email" className="mb-2 ml-1 block text-[13px] font-semibold tracking-[0.05em] text-ink-soft">
+                E-mail
+              </label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
                 <input
+                  id="email"
                   type="email"
                   required
+                  autoComplete="username"
+                  inputMode="email"
+                  autoCapitalize="none"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-slate-800 text-white rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder:text-slate-600"
-                  placeholder="Seu email"
-                />
-              </div>
-
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-slate-800 text-white rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder:text-slate-600"
-                  placeholder="Sua senha"
+                  className={`${inputClass} pr-4`}
+                  placeholder="admin@munimoldes.com.br"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl py-4 font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all disabled:opacity-70 disabled:pointer-events-none disabled:transform-none flex items-center justify-center gap-2"
-            >
+            <div>
+              <label htmlFor="password" className="mb-2 ml-1 block text-[13px] font-semibold tracking-[0.05em] text-ink-soft">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`${inputClass} pr-12`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((show) => !show)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-pressed={showPassword}
+                  className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-outline hover:text-primary"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full disabled:pointer-events-none disabled:opacity-70">
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Entrando...
                 </>
               ) : (
-                'Entrar no Painel'
+                <>
+                  Entrar no painel
+                  <ArrowRight className="h-4 w-4" />
+                </>
               )}
             </button>
           </form>
         </div>
-      </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-ink-soft/70">Ambiente seguro. Acesso restrito a pessoas autorizadas.</p>
+          <Link to="/" className="mt-4 inline-flex min-h-11 items-center gap-2 text-[13px] font-semibold text-primary underline-offset-4 hover:underline">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao site
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }

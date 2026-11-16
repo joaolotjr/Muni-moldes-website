@@ -20,7 +20,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // No próprio login, o 401 é só "credenciais inválidas": a tela mostra a mensagem.
+    const isLoginAttempt = error.config?.url?.includes('/auth/login');
+    if (error.response?.status === 401 && !isLoginAttempt) {
       logout();
     }
     return Promise.reject(error);
