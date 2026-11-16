@@ -20,3 +20,11 @@ export function whatsappLink(message?: string) {
 
 export const defaultQuoteMessage =
   'Olá! Gostaria de solicitar um orçamento de moldes para minha empresa.';
+
+// Mensagem de orçamento já com o nome e o link do molde.
+export function productQuoteLink(product: { name: string; slug: string }) {
+  const url = `${window.location.origin}/molde/${product.slug}`;
+  return whatsappLink(
+    `Olá! Gostaria de um orçamento para o molde: *${product.name}*.\n\nQuantidade: \n\nLink: ${url}`,
+  );
+}

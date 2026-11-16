@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { api } from '../../services/api';
 import { ProductCard } from '../../components/public/ProductCard';
@@ -60,86 +60,106 @@ export function Catalog() {
     setSearchParams({});
   };
 
+  // No celular os filtros são pílulas em rolagem horizontal; no desktop, lista lateral.
   const filterButtonClass = (active: boolean) =>
-    `flex w-full items-center justify-between gap-3 whitespace-nowrap border-b-2 px-3 py-2 text-left text-sm transition-colors lg:border-b-0 lg:border-l-2 ${
+    `flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm transition-colors lg:w-full lg:justify-between lg:rounded-lg lg:border-transparent lg:px-3 ${
       active
-        ? 'border-ink bg-white font-semibold text-ink'
-        : 'border-transparent text-ink-soft hover:text-ink'
+        ? 'border-primary bg-primary font-semibold text-white lg:border-primary'
+        : 'border-line bg-white text-ink-soft hover:text-primary lg:bg-transparent lg:hover:bg-surface-mid'
     }`;
+
+  const filters = [
+    { slug: '', name: 'Todos os moldes', count: products.length },
+    ...collections.map((c) => ({ slug: c.slug, name: c.name, count: countByCollection.get(c.slug) ?? 0 })),
+  ];
 
   return (
     <div className="flex-1">
-      <section className="border-b border-line bg-white">
-        <div className="container-page py-10">
-          <nav className="eyebrow flex items-center gap-2" aria-label="Você está em">
-            <Link to="/" className="hover:text-ink">Início</Link>
-            <span>/</span>
-            <span className="text-ink">Catálogo</span>
-          </nav>
-          <div className="mt-4 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                {activeCollection ? activeCollection.name : 'Catálogo de moldes'}
-              </h1>
-              <p className="mt-2 font-mono text-xs text-ink-soft">
-                {loading
-                  ? 'Carregando'
-                  : `${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
-              </p>
-            </div>
-            <div className="relative w-full md:w-80">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar pelo nome do molde"
-                aria-label="Buscar pelo nome do molde"
-                className="field pl-10"
-              />
-            </div>
+      <div className="container-page pt-5 sm:pt-10">
+        {/* Faixa de abertura */}
+        <section className="rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+          <p className="eyebrow tracking-[0.2em]">Catálogo</p>
+          <h1 className="heading-1 mt-3">
+            {activeCollection ? activeCollection.name : 'Catálogo de moldes'}
+          </h1>
+          <p className="mt-3 max-w-xl text-ink-soft sm:text-lg">
+            Escolha os modelos e peça o orçamento da quantidade que você precisa.
+          </p>
+          <div className="relative mt-6 max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar no catálogo..."
+              aria-label="Buscar pelo nome do molde"
+              className="field rounded-full bg-white pl-12"
+            />
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <div className="container-page grid gap-10 py-10 lg:grid-cols-[220px_1fr]">
-        <aside className="min-w-0">
-          <div className="lg:sticky lg:top-24">
-            <p className="eyebrow mb-3">Linhas</p>
-            <ul className="flex gap-1 overflow-x-auto pb-2 lg:block lg:space-y-0.5 lg:overflow-visible lg:pb-0">
-              <li className="shrink-0">
-                <button type="button" onClick={() => setSearchParams({})} className={filterButtonClass(!activeSlug)}>
-                  <span>Todos os moldes</span>
-                  <span className="font-mono text-xs">{products.length}</span>
-                </button>
-              </li>
-              {collections.map((collection) => (
-                <li key={collection.id} className="shrink-0">
+      {/* Filtros fixos abaixo do cabeçalho no celular */}
+      <div className="sticky top-16 z-30 mt-4 bg-surface/95 backdrop-blur-sm lg:hidden">
+        <ul className="no-scrollbar flex gap-2 overflow-x-auto px-5 py-3 sm:px-8" aria-label="Filtrar por linha">
+          {filters.map((filter) => (
+            <li key={filter.slug} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => setSearchParams(filter.slug ? { colecao: filter.slug } : {})}
+                aria-pressed={activeSlug === filter.slug}
+                className={filterButtonClass(activeSlug === filter.slug)}
+              >
+                {filter.name}
+                <span className="text-xs opacity-70">{filter.count}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="container-page flex gap-12 pb-14 pt-4 sm:pb-24 lg:pt-12">
+        <aside className="hidden w-60 shrink-0 lg:block">
+          <div className="sticky top-28">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Linha</h2>
+            <ul className="mt-5 space-y-1">
+              {filters.map((filter) => (
+                <li key={filter.slug}>
                   <button
                     type="button"
-                    onClick={() => setSearchParams({ colecao: collection.slug })}
-                    className={filterButtonClass(activeSlug === collection.slug)}
+                    onClick={() => setSearchParams(filter.slug ? { colecao: filter.slug } : {})}
+                    aria-pressed={activeSlug === filter.slug}
+                    className={filterButtonClass(activeSlug === filter.slug)}
                   >
-                    <span>{collection.name}</span>
-                    <span className="font-mono text-xs">{countByCollection.get(collection.slug) ?? 0}</span>
+                    {filter.name}
+                    <span className="text-xs opacity-70">{filter.count}</span>
                   </button>
                 </li>
               ))}
             </ul>
+            <button type="button" onClick={clearFilters} className="btn btn-outline mt-8 w-full text-ink-soft">
+              Limpar filtros
+            </button>
           </div>
         </aside>
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className="mb-5 text-sm text-ink-soft sm:mb-8" aria-live="polite">
+            {loading
+              ? 'Carregando moldes...'
+              : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
+          </p>
+
           {loading ? (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">
               {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="aspect-[3/4] animate-pulse border border-line bg-white" />
+                <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-white shadow-soft" />
               ))}
             </div>
           ) : visibleProducts.length === 0 ? (
-            <div className="border border-line bg-white px-6 py-16 text-center">
-              <h2 className="text-lg font-semibold">Nenhum molde encontrado</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
+            <div className="card px-6 py-14 text-center">
+              <h2 className="heading-3">Nenhum molde encontrado</h2>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
                 Não há moldes para a busca ou a linha selecionada. Se procura um modelo específico,
                 fale com a gente.
               </p>
@@ -148,7 +168,7 @@ export function Catalog() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">
               {visibleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

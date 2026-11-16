@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Mail, Menu, X } from 'lucide-react';
 import { InstagramIcon } from '../icons/InstagramIcon';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
 import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
 
 const navItems = [
-  { to: '/catalogo', label: 'Catálogo' },
-  { to: '/sobre', label: 'A fábrica' },
-  { to: '/contato', label: 'Contato' },
+  { to: '/', label: 'Início', end: true },
+  { to: '/catalogo', label: 'Catálogo', end: false },
+  { to: '/sobre', label: 'Sobre nós', end: false },
+  { to: '/contato', label: 'Contato', end: false },
 ];
 
 export function PublicLayout() {
@@ -22,81 +23,86 @@ export function PublicLayout() {
   const quoteUrl = whatsappLink(defaultQuoteMessage);
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink">
-      {/* Faixa de atendimento */}
-      <div className="bg-ink text-white">
-        <div className="container-page flex h-9 items-center justify-between gap-4 text-xs">
-          <p className="truncate text-white/75">
-            Atendimento a confeitarias, lojistas e revendedores
-          </p>
-          <a
-            href={quoteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex shrink-0 items-center gap-1.5 font-medium hover:underline"
-          >
-            <WhatsAppIcon className="h-3.5 w-3.5" />
-            {site.phoneDisplay}
-          </a>
-        </div>
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-line bg-white">
-        <div className="container-page flex h-16 items-center justify-between gap-6">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="" className="h-11 w-11" />
-            <span className="leading-none">
-              <span className="block text-[17px] font-bold tracking-tight">{site.name}</span>
-              <span className="eyebrow mt-1 block text-[10px]">{site.tagline}</span>
+    <div className="flex min-h-screen flex-col bg-surface font-sans text-ink selection:bg-primary-soft selection:text-primary-dark">
+      <header className="sticky top-0 z-40 border-b border-line-soft bg-surface shadow-soft">
+        <div className="container-page flex h-16 items-center justify-between gap-4 md:h-20">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            <img src="/logo.png" alt="" className="h-10 w-10 shrink-0 md:h-11 md:w-11" />
+            <span className="truncate text-base font-bold uppercase tracking-[0.18em] md:text-xl">
+              {site.name}
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-8 md:flex" aria-label="Principal">
+          <nav className="hidden items-center gap-8 md:flex lg:gap-10" aria-label="Principal">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.end}
                 className={({ isActive }) =>
-                  `border-b-2 py-5 text-sm font-medium transition-colors ${
+                  `border-b-2 pb-1 text-[15px] transition-colors duration-300 ${
                     isActive
-                      ? 'border-ink text-ink'
-                      : 'border-transparent text-ink-soft hover:text-ink'
+                      ? 'border-primary-soft font-bold text-primary'
+                      : 'border-transparent text-ink-soft hover:text-primary'
                   }`
                 }
               >
                 {item.label}
               </NavLink>
             ))}
-            <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote py-2.5">
-              Solicitar orçamento
-            </a>
           </nav>
 
-          <button
-            type="button"
-            className="-mr-2 p-2 md:hidden"
-            onClick={() => setMobileMenuOpen((open) => !open)}
-            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-            aria-expanded={mobileMenuOpen}
+          <a
+            href={quoteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary hidden min-h-11 py-2.5 md:inline-flex"
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+            Solicitar orçamento
+          </a>
+
+          {/* No celular: atalho de orçamento e menu, com área de toque de 44px */}
+          <div className="flex shrink-0 items-center gap-1 md:hidden">
+            <a
+              href={quoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Solicitar orçamento pelo WhatsApp"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white"
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+            </a>
+            <button
+              type="button"
+              className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {mobileMenuOpen && (
-          <nav className="border-t border-line bg-white md:hidden" aria-label="Principal">
-            <div className="container-page flex flex-col py-3">
+          <nav className="border-t border-line-soft bg-surface md:hidden" aria-label="Principal">
+            <div className="container-page flex flex-col pb-5 pt-2">
               {navItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.to}
                   to={item.to}
+                  end={item.end}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="border-b border-line py-3.5 text-base font-medium"
+                  className={({ isActive }) =>
+                    `border-b border-line-soft py-4 font-serif text-lg ${
+                      isActive ? 'font-semibold text-primary' : 'text-ink'
+                    }`
+                  }
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
-              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote mt-4">
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-5">
                 <WhatsAppIcon className="h-4 w-4" />
                 Solicitar orçamento
               </a>
@@ -109,52 +115,74 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
-      <footer className="mt-auto bg-ink text-white">
-        <div className="container-page grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
+      <footer className="mt-auto border-t border-line-soft bg-surface-high">
+        <div className="container-page grid gap-10 py-12 md:grid-cols-3 md:gap-12 md:py-16">
           <div>
-            <p className="text-lg font-bold tracking-tight">{site.name}</p>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/65">
+            <p className="font-serif text-xl italic">{site.name}</p>
+            <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-ink-soft">
               Fábrica de moldes para chocolate e confeitaria. Atendemos pedidos em quantidade
               para confeitarias, lojistas e revendedores.
             </p>
+            <div className="mt-6 flex gap-2">
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <WhatsAppIcon className="h-5 w-5" />
+              </a>
+              <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <InstagramIcon className="h-5 w-5" />
+              </a>
+              <a href={`mailto:${site.email}`} aria-label="E-mail" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                <Mail className="h-5 w-5" />
+              </a>
+            </div>
           </div>
 
-          <div>
-            <p className="eyebrow text-white/50">Navegação</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link to="/catalogo" className="text-white/80 hover:text-white">Catálogo de moldes</Link></li>
-              <li><Link to="/sobre" className="text-white/80 hover:text-white">A fábrica</Link></li>
-              <li><Link to="/contato" className="text-white/80 hover:text-white">Contato</Link></li>
-            </ul>
+          <div className="grid grid-cols-[2fr_3fr] gap-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]">Navegação</p>
+              <ul className="mt-5 space-y-3 text-sm">
+                {navItems.map((item) => (
+                  <li key={item.to}>
+                    <Link to={item.to} className="text-ink-soft underline-offset-4 hover:underline hover:decoration-primary-soft">
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]">Atendimento</p>
+              <ul className="mt-5 space-y-3 text-sm text-ink-soft">
+                <li>
+                  <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline hover:decoration-primary-soft">
+                    {site.phoneDisplay}
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${site.email}`} className="text-[13px] underline-offset-4 hover:underline hover:decoration-primary-soft">
+                    {site.email}
+                  </a>
+                </li>
+                <li>{site.businessHours}</li>
+              </ul>
+            </div>
           </div>
 
-          <div>
-            <p className="eyebrow text-white/50">Atendimento</p>
-            <ul className="mt-4 space-y-2.5 text-sm text-white/80">
-              <li>
-                <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white">
-                  <WhatsAppIcon className="h-4 w-4" />
-                  {site.phoneDisplay}
-                </a>
-              </li>
-              <li>
-                <a href={`mailto:${site.email}`} className="hover:text-white">{site.email}</a>
-              </li>
-              <li>
-                <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white">
-                  <InstagramIcon className="h-4 w-4" />
-                  {site.instagramHandle}
-                </a>
-              </li>
-              <li className="text-white/50">{site.businessHours}</li>
-            </ul>
+          <div className="rounded-2xl bg-white p-6 shadow-soft sm:p-8">
+            <p className="heading-3">Peça seu orçamento</p>
+            <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+              Fale direto com a fábrica pelo WhatsApp e receba o orçamento da sua lista de moldes.
+            </p>
+            <a href={quoteUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-5 w-full">
+              <WhatsAppIcon className="h-4 w-4" />
+              Chamar no WhatsApp
+            </a>
           </div>
         </div>
 
-        <div className="border-t border-white/10">
-          <div className="container-page flex flex-col justify-between gap-2 py-5 text-xs text-white/45 sm:flex-row">
+        <div className="border-t border-line-soft">
+          <div className="container-page flex flex-col justify-between gap-2 py-6 font-serif text-xs text-outline sm:flex-row">
             <p>&copy; {new Date().getFullYear()} {site.name}. Todos os direitos reservados.</p>
-            <Link to="/admin" className="hover:text-white/80">Área restrita</Link>
+            <Link to="/admin" className="hover:text-ink">Área restrita</Link>
           </div>
         </div>
       </footer>

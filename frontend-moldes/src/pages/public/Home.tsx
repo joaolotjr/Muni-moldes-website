@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronRight, Factory, MessagesSquare, Package } from 'lucide-react';
 import { api } from '../../services/api';
 import { defaultQuoteMessage, whatsappLink } from '../../config/site';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
@@ -10,14 +10,20 @@ import type { Collection, Product } from '../../types';
 
 const differentials = [
   {
+    icon: Factory,
+    tone: 'bg-secondary-soft/50 text-secondary',
     title: 'Fabricação própria',
     text: 'Os moldes são produzidos na nossa fábrica, com acabamento conferido peça a peça.',
   },
   {
+    icon: Package,
+    tone: 'bg-primary-soft/25 text-primary',
     title: 'Pedidos em quantidade',
     text: 'Atendemos confeitarias, lojas e revendedores que precisam de volume e reposição.',
   },
   {
+    icon: MessagesSquare,
+    tone: 'bg-surface-high text-ink-soft',
     title: 'Orçamento direto',
     text: 'Você fala com a fábrica pelo WhatsApp e recebe o orçamento da sua lista de moldes.',
   },
@@ -28,6 +34,13 @@ const steps = [
   { title: 'Envie sua lista', text: 'Mande os modelos e as quantidades pelo WhatsApp.' },
   { title: 'Receba o orçamento', text: 'Retornamos com valores e prazo de produção.' },
   { title: 'Produção e envio', text: 'Com o pedido confirmado, produzimos e despachamos.' },
+];
+
+// Fundos alternados dos cartões de linha, nos tons do logo.
+const collectionTones = [
+  'bg-primary-pale text-primary-dark',
+  'bg-secondary-soft text-secondary-dark',
+  'bg-surface-high text-ink',
 ];
 
 export function Home() {
@@ -64,32 +77,35 @@ export function Home() {
     return counts;
   }, [products]);
 
-  const latestProducts = useMemo(() => [...products].reverse().slice(0, 8), [products]);
+  const latestProducts = useMemo(() => [...products].reverse().slice(0, 6), [products]);
 
   return (
     <div className="flex-1">
       {/* Abertura */}
-      <section className="border-b border-line bg-white">
-        <div className="container-page grid gap-12 py-14 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:py-20">
-          <div className="flex flex-col justify-center">
-            <p className="eyebrow">Fábrica de moldes · Atacado e revenda</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.04]">
-              Moldes para chocolate e confeitaria, direto da fábrica.
+      <section className="overflow-hidden bg-surface-low">
+        <div className="container-page grid items-center gap-10 py-12 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
+          <div>
+            <span className="chip bg-secondary-soft px-4 py-1.5 text-[11px] text-secondary-dark">
+              Fábrica de moldes · Atacado e revenda
+            </span>
+            <h1 className="heading-1 mt-5 sm:mt-6">
+              Moldes para chocolate e confeitaria,{' '}
+              <span className="font-normal italic text-primary">direto da fábrica.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-soft sm:text-lg">
               Catálogo completo para confeitarias, lojistas e revendedores. Escolha os modelos e
               peça o orçamento da quantidade que você precisa.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/catalogo" className="btn btn-primary">
-                Ver catálogo
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Link to="/catalogo" className="btn btn-primary sm:px-10 sm:py-4">
+                Explorar catálogo
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href={whatsappLink(defaultQuoteMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-outline"
+                className="btn btn-outline sm:px-10 sm:py-4"
               >
                 <WhatsAppIcon className="h-4 w-4" />
                 Solicitar orçamento
@@ -97,147 +113,160 @@ export function Home() {
             </div>
           </div>
 
-          {/* Índice de linhas */}
-          <div className="self-center border border-line bg-paper">
-            <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-              <p className="eyebrow">Linhas de produto</p>
-              <p className="font-mono text-xs text-ink-soft">
-                {loading ? '' : `${products.length} ${products.length === 1 ? 'molde' : 'moldes'}`}
-              </p>
+          {/* Selo da marca com amostras de cor, a partir do tablet */}
+          <div className="relative mx-auto hidden h-80 w-80 md:block lg:h-[26rem] lg:w-[26rem]" aria-hidden="true">
+            <div className="absolute inset-6 flex items-center justify-center rounded-full bg-white shadow-soft">
+              <img src="/logo.png" alt="" className="h-3/4 w-3/4 object-contain" />
             </div>
-            {loading ? (
-              <div className="space-y-px">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="h-[53px] animate-pulse border-b border-line bg-white/60 last:border-b-0" />
-                ))}
-              </div>
-            ) : collections.length === 0 ? (
-              <p className="px-5 py-10 text-sm text-ink-soft">
-                O catálogo está sendo atualizado. Fale com a gente para receber a lista de moldes.
-              </p>
-            ) : (
-              <ul>
-                {collections.slice(0, 6).map((collection, index) => (
-                  <li key={collection.id} className="border-b border-line last:border-b-0">
-                    <Link
-                      to={`/catalogo?colecao=${collection.slug}`}
-                      className="group flex items-center gap-4 bg-white px-5 py-3.5 transition-colors hover:bg-ink hover:text-white"
-                    >
-                      <span className="font-mono text-xs text-ink-soft group-hover:text-white/60">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <span className="flex-1 font-medium">{collection.name}</span>
-                      <span className="font-mono text-xs text-ink-soft group-hover:text-white/60">
-                        {countByCollection.get(collection.id) ?? 0}
-                      </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {collections.length > 6 && (
-              <Link
-                to="/catalogo"
-                className="block border-t border-line px-5 py-3.5 text-sm font-semibold hover:underline"
-              >
-                Ver todas as {collections.length} linhas
-              </Link>
-            )}
+            <div className="absolute right-0 top-2 h-20 w-20 rounded-full bg-linear-to-br from-primary-soft to-primary shadow-lift" />
+            <div className="absolute bottom-4 left-0 h-14 w-14 rounded-full bg-linear-to-br from-[#accec5] to-secondary shadow-lift" />
           </div>
         </div>
       </section>
 
       {/* Diferenciais */}
-      <section className="border-b border-line">
-        <div className="container-page grid md:grid-cols-3">
-          {differentials.map((item, index) => (
-            <div
-              key={item.title}
-              className={`py-8 md:px-8 md:py-10 ${index > 0 ? 'border-t border-line md:border-l md:border-t-0' : 'md:pl-0'}`}
-            >
-              <h2 className="text-base font-semibold">{item.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{item.text}</p>
+      <section className="container-page py-14 sm:py-24">
+        <div className="text-center">
+          <h2 className="heading-2">Por que comprar da fábrica</h2>
+          <div className="mx-auto mt-4 h-1 w-20 rounded-full bg-primary-soft" />
+        </div>
+        <div className="mt-10 grid gap-4 sm:mt-16 md:grid-cols-3 md:gap-8">
+          {differentials.map((item) => (
+            <div key={item.title} className="card flex gap-4 p-5 md:block md:p-10">
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full md:mb-6 md:h-14 md:w-14 ${item.tone}`}>
+                <item.icon className="h-6 w-6" strokeWidth={1.75} />
+              </div>
+              <div>
+                <h3 className="heading-3">{item.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-soft md:mt-4 md:text-base">{item.text}</p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Lançamentos */}
-      {(loading || latestProducts.length > 0) && (
-        <section className="border-b border-line bg-white">
-          <div className="container-page py-16">
-            <div className="mb-8 flex items-end justify-between gap-6">
-              <div>
-                <p className="eyebrow">Catálogo</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Últimos moldes adicionados
-                </h2>
-              </div>
-              <Link to="/catalogo" className="hidden items-center gap-2 text-sm font-semibold hover:underline sm:flex">
-                Ver catálogo completo
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="aspect-[3/4] animate-pulse border border-line bg-paper" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                {latestProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            )}
-
-            <Link to="/catalogo" className="btn btn-outline mt-8 w-full sm:hidden">
-              Ver catálogo completo
-            </Link>
-          </div>
-        </section>
-      )}
-
       {/* Como comprar */}
-      <section className="border-b border-line">
-        <div className="container-page py-16">
-          <p className="eyebrow">Como comprar</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Do catálogo ao pedido em quatro etapas
-          </h2>
-          <ol className="mt-10 grid gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+      <section className="bg-surface-high/40">
+        <div className="container-page py-14 sm:py-24">
+          <div className="text-center">
+            <h2 className="heading-2">Como funciona</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-ink-soft">
+              Do catálogo ao pedido em quatro etapas, sempre falando direto com a fábrica.
+            </p>
+          </div>
+          <ol className="mt-10 grid gap-6 sm:mt-16 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
             {steps.map((step, index) => (
-              <li key={step.title} className="bg-paper p-6">
-                <span className="font-mono text-sm text-rose">{String(index + 1).padStart(2, '0')}</span>
-                <h3 className="mt-3 font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p>
+              <li key={step.title} className="flex gap-4 sm:block sm:text-center">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-xl font-semibold text-white sm:mx-auto sm:mb-6 sm:h-16 sm:w-16 sm:text-2xl">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="font-serif text-lg font-semibold sm:text-xl">{step.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-soft sm:mt-3">{step.text}</p>
+                </div>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      {/* A fábrica */}
-      <section className="bg-white">
-        <div className="container-page grid gap-8 py-16 md:grid-cols-[1fr_1.4fr] md:gap-16">
-          <div>
-            <p className="eyebrow">A fábrica</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Nascida na confeitaria
-            </h2>
+      {/* Linhas e últimos moldes */}
+      {(loading || collections.length > 0 || latestProducts.length > 0) && (
+        <section className="bg-surface-low">
+          <div className="container-page py-14 sm:py-24">
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <h2 className="heading-2">Linhas em destaque</h2>
+                <p className="mt-2 text-ink-soft">Moldes organizados por linha de produto.</p>
+              </div>
+              <Link
+                to="/catalogo"
+                className="group hidden shrink-0 items-center gap-1 border-b border-primary-soft pb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-primary sm:flex"
+              >
+                Ver catálogo completo
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-6 lg:grid-cols-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-32 animate-pulse rounded-2xl bg-surface-high sm:h-44" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {collections.length > 0 && (
+                  <ul className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-6 lg:grid-cols-3">
+                    {collections.slice(0, 6).map((collection, index) => {
+                      const count = countByCollection.get(collection.id) ?? 0;
+                      return (
+                        <li key={collection.id}>
+                          <Link
+                            to={`/catalogo?colecao=${collection.slug}`}
+                            className={`group flex h-32 flex-col justify-between rounded-2xl p-4 shadow-soft transition duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:h-44 sm:p-7 ${collectionTones[index % collectionTones.length]}`}
+                          >
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] opacity-80">
+                              {count} {count === 1 ? 'molde' : 'moldes'}
+                            </span>
+                            <span className="flex items-end justify-between gap-2">
+                              <span className="font-serif text-lg font-semibold leading-tight sm:text-2xl">
+                                {collection.name}
+                              </span>
+                              <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                {latestProducts.length > 0 && (
+                  <>
+                    <h3 className="heading-3 mt-12 sm:mt-16">Últimos moldes adicionados</h3>
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-3">
+                      {latestProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            <Link to="/catalogo" className="btn btn-outline mt-8 w-full sm:hidden">
+              Ver catálogo completo
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-          <div>
-            <p className="text-lg leading-relaxed text-ink-soft">
+        </section>
+      )}
+
+      {/* Nossa história */}
+      <section className="container-page py-14 sm:py-24 lg:py-32">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-20">
+          <div className="lg:w-5/12">
+            <div className="mx-auto flex aspect-[4/3] max-w-md items-center justify-center rounded-2xl bg-white shadow-soft lg:aspect-square">
+              <img src="/logo.png" alt="Selo Muni Moldes, fábrica de moldes" className="h-3/5 object-contain" />
+            </div>
+          </div>
+          <div className="lg:w-7/12">
+            <p className="eyebrow">Nossa história</p>
+            <h2 className="heading-2 mt-4">
+              Nascida na <span className="italic">confeitaria</span>
+            </h2>
+            <p className="mt-6 text-base leading-relaxed text-ink-soft sm:text-lg">
               A Muni Moldes começou com a Mariluci, confeiteira que passou a fabricar os próprios
               moldes por não encontrar no mercado a qualidade que precisava. Hoje a fábrica produz
               para quem vive da confeitaria e conhece a diferença que um bom molde faz na produção.
             </p>
-            <Link to="/sobre" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold hover:underline">
+            <Link
+              to="/sobre"
+              className="group mt-8 inline-flex items-center gap-1 border-b border-primary-soft pb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-primary"
+            >
               Conheça a fábrica
-              <ArrowRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </div>

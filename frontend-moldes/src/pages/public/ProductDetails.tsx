@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ImageOff } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
-import { whatsappLink } from '../../config/site';
+import { productQuoteLink } from '../../config/site';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
+import { ProductCard } from '../../components/public/ProductCard';
 import type { Product } from '../../types';
 
 export function ProductDetails() {
   const { slug } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string | null>(null);
 
@@ -19,6 +21,21 @@ export function ProductDetails() {
         const res = await api.get<Product>(`/products/${slug}`);
         setProduct(res.data);
         setActiveImage(res.data.images?.[0]?.image_url ?? null);
+
+        // Outros moldes da mesma linha. Se falhar, a página segue sem a seção.
+        const collectionId = res.data.collection?.id;
+        if (collectionId) {
+          try {
+            const all = await api.get<Product[]>('/products?public=true');
+            setRelated(
+              all.data.filter((p) => p.collection?.id === collectionId && p.id !== res.data.id).slice(0, 4),
+            );
+          } catch {
+            setRelated([]);
+          }
+        } else {
+          setRelated([]);
+        }
       } catch (error) {
         console.error('Error fetching product details', error);
         setProduct(null);
@@ -31,12 +48,12 @@ export function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="container-page grid flex-1 gap-10 py-12 md:grid-cols-2">
-        <div className="aspect-square animate-pulse border border-line bg-white" />
-        <div className="space-y-4">
-          <div className="h-4 w-32 animate-pulse bg-line" />
-          <div className="h-10 w-3/4 animate-pulse bg-line" />
-          <div className="h-32 animate-pulse bg-line/60" />
+      <div className="container-page grid flex-1 gap-8 py-8 lg:grid-cols-12 lg:gap-16 lg:py-16">
+        <div className="aspect-square animate-pulse rounded-2xl bg-white shadow-soft lg:col-span-7" />
+        <div className="space-y-4 lg:col-span-5">
+          <div className="h-4 w-32 animate-pulse rounded bg-surface-high" />
+          <div className="h-10 w-3/4 animate-pulse rounded bg-surface-high" />
+          <div className="h-32 animate-pulse rounded bg-surface-mid" />
         </div>
       </div>
     );
@@ -44,10 +61,10 @@ export function ProductDetails() {
 
   if (!product) {
     return (
-      <div className="container-page flex flex-1 flex-col items-start justify-center py-24">
+      <div className="container-page flex flex-1 flex-col items-start justify-center py-20">
         <p className="eyebrow">Catálogo</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Molde não encontrado</h1>
-        <p className="mt-3 max-w-md text-ink-soft">
+        <h1 className="heading-1 mt-3">Molde não encontrado</h1>
+        <p className="mt-4 max-w-md text-ink-soft">
           Este molde não existe ou saiu do catálogo. Veja os modelos disponíveis.
         </p>
         <Link to="/catalogo" className="btn btn-primary mt-8">
@@ -58,10 +75,6 @@ export function ProductDetails() {
     );
   }
 
-  const whatsappUrl = whatsappLink(
-    `Olá! Gostaria de um orçamento para o molde: *${product.name}*.\n\nQuantidade: \n\nLink: ${window.location.href}`,
-  );
-
   const specs = [
     { label: 'Linha', value: product.collection?.name },
     { label: 'Dimensões', value: product.dimensions },
@@ -69,47 +82,49 @@ export function ProductDetails() {
   ].filter((spec) => spec.value);
 
   return (
-    <div className="flex-1 bg-white">
-      <div className="border-b border-line">
-        <nav className="container-page eyebrow flex flex-wrap items-center gap-2 py-4" aria-label="Você está em">
-          <Link to="/" className="hover:text-ink">Início</Link>
-          <span>/</span>
-          <Link to="/catalogo" className="hover:text-ink">Catálogo</Link>
-          {product.collection && (
-            <>
-              <span>/</span>
-              <Link to={`/catalogo?colecao=${product.collection.slug}`} className="hover:text-ink">
-                {product.collection.name}
-              </Link>
-            </>
-          )}
-        </nav>
-      </div>
+    <div className="container-page flex-1 pb-14 pt-6 sm:pb-24 sm:pt-10 lg:pt-16">
+      <nav
+        className="mb-6 flex flex-wrap gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-[0.12em] text-outline lg:mb-12"
+        aria-label="Você está em"
+      >
+        <Link to="/catalogo" className="hover:text-primary">Catálogo</Link>
+        {product.collection && (
+          <>
+            <span>/</span>
+            <Link to={`/catalogo?colecao=${product.collection.slug}`} className="hover:text-primary">
+              {product.collection.name}
+            </Link>
+          </>
+        )}
+        <span>/</span>
+        <span className="text-ink">{product.name}</span>
+      </nav>
 
-      <div className="container-page grid gap-10 py-10 md:grid-cols-2 lg:gap-16 lg:py-14">
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
         {/* Fotos */}
-        <div>
-          <div className="flex aspect-square items-center justify-center border border-line bg-paper">
+        <div className="lg:col-span-7">
+          <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-white shadow-soft lg:aspect-[4/3]">
             {activeImage ? (
               <img src={`${API_URL}${activeImage}`} alt={product.name} className="h-full w-full object-contain" />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-ink-soft/50">
+              <div className="flex flex-col items-center gap-2 text-outline/60">
                 <ImageOff className="h-8 w-8" strokeWidth={1.5} />
-                <span className="eyebrow text-ink-soft/60">Foto em breve</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">Foto em breve</span>
               </div>
             )}
           </div>
 
           {product.images.length > 1 && (
-            <div className="mt-3 grid grid-cols-5 gap-3">
+            <div className="mt-3 grid grid-cols-4 gap-3 sm:mt-6 sm:gap-6">
               {product.images.map((img, index) => (
                 <button
                   key={img.id}
                   type="button"
                   onClick={() => setActiveImage(img.image_url)}
                   aria-label={`Ver foto ${index + 1}`}
-                  className={`aspect-square overflow-hidden border bg-paper ${
-                    activeImage === img.image_url ? 'border-ink' : 'border-line hover:border-ink/50'
+                  aria-pressed={activeImage === img.image_url}
+                  className={`aspect-square overflow-hidden rounded-xl bg-white shadow-soft ring-2 ring-offset-2 ring-offset-surface transition ${
+                    activeImage === img.image_url ? 'ring-primary' : 'ring-transparent hover:opacity-90'
                   }`}
                 >
                   <img src={`${API_URL}${img.image_url}`} alt="" className="h-full w-full object-cover" />
@@ -120,42 +135,72 @@ export function ProductDetails() {
         </div>
 
         {/* Ficha */}
-        <div>
-          {product.collection && <p className="eyebrow text-rose">{product.collection.name}</p>}
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{product.name}</h1>
+        <div className="lg:col-span-5">
+          {product.collection && <p className="eyebrow tracking-[0.2em]">{product.collection.name}</p>}
+          <h1 className="heading-1 mt-3">{product.name}</h1>
 
           {product.description && (
-            <p className="mt-5 whitespace-pre-wrap leading-relaxed text-ink-soft">{product.description}</p>
+            <p className="mt-5 whitespace-pre-wrap text-base leading-relaxed text-ink-soft sm:text-lg">
+              {product.description}
+            </p>
           )}
 
           {specs.length > 0 && (
-            <dl className="mt-8 border-t border-line">
-              {specs.map((spec) => (
-                <div key={spec.label} className="flex items-baseline justify-between gap-6 border-b border-line py-3">
-                  <dt className="eyebrow">{spec.label}</dt>
-                  <dd className="text-right font-mono text-sm">{spec.value}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="mt-8">
+              <h2 className="heading-3 border-b border-line pb-2">Especificações técnicas</h2>
+              <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5">
+                {specs.map((spec) => (
+                  <div key={spec.label}>
+                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-outline">{spec.label}</dt>
+                    <dd className="mt-1">{spec.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           )}
 
-          <div className="mt-8 border border-line bg-paper p-5">
-            <p className="font-semibold">Orçamento para este molde</p>
-            <p className="mt-1 text-sm text-ink-soft">
+          <div className="mt-8 border-t border-line pt-8">
+            <a
+              href={productQuoteLink(product)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary w-full py-5"
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+              Solicitar orçamento
+            </a>
+            <p className="mt-3 text-sm leading-relaxed text-ink-soft">
               Informe a quantidade desejada. Para vários modelos, envie a lista completa na mesma conversa.
             </p>
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn-quote mt-4 w-full">
-              <WhatsAppIcon className="h-4 w-4" />
-              Solicitar orçamento pelo WhatsApp
-            </a>
+            <Link to="/catalogo" className="btn btn-secondary mt-4 w-full">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao catálogo
+            </Link>
           </div>
-
-          <Link to="/catalogo" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-ink">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao catálogo
-          </Link>
         </div>
       </div>
+
+      {related.length > 0 && product.collection && (
+        <section className="mt-16 lg:mt-32">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <h2 className="heading-2">Moldes relacionados</h2>
+              <p className="mt-2 text-ink-soft">Da mesma linha: {product.collection.name}</p>
+            </div>
+            <Link
+              to={`/catalogo?colecao=${product.collection.slug}`}
+              className="hidden shrink-0 border-b border-primary pb-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-primary sm:block"
+            >
+              Ver toda a linha
+            </Link>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
