@@ -33,7 +33,14 @@ export const setAuthToken = (token: string) => {
   localStorage.setItem('token', token);
 };
 
+// Nome de quem entrou, só para mostrar no cabeçalho do painel.
+export const setUserName = (name: string | undefined) => {
+  if (name) localStorage.setItem('user_name', name);
+};
+export const getUserName = () => localStorage.getItem('user_name');
+
 export const logout = () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('user_name');
   window.location.href = '/admin/login';
 };

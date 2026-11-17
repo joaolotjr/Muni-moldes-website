@@ -1,4 +1,6 @@
 import { QuoteBand } from '../../components/public/QuoteBand';
+import { paragraphs } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 
 const principles = [
   {
@@ -16,6 +18,9 @@ const principles = [
 ];
 
 export function About() {
+  const site = useSite();
+  const story = paragraphs(site.aboutStory);
+
   return (
     <div className="flex-1">
       <div className="container-page py-10 sm:py-16">
@@ -23,10 +28,9 @@ export function About() {
         <section className="grid items-center gap-8 md:grid-cols-12 md:gap-16">
           <div className="md:col-span-6 lg:col-span-5">
             <p className="eyebrow">Sobre nós</p>
-            <h1 className="heading-1 mt-4">Moldes feitos por quem conhece a rotina da confeitaria.</h1>
+            <h1 className="heading-1 mt-4">{site.aboutTitle}</h1>
             <p className="mt-5 text-base leading-relaxed text-ink-soft sm:text-lg">
-              A Muni Moldes nasceu dentro de uma cozinha e hoje fabrica moldes para confeitarias,
-              lojistas e revendedores.
+              {site.aboutIntro}
             </p>
           </div>
           <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-white shadow-soft md:col-span-6 md:aspect-auto md:h-[26rem] lg:col-span-7">
@@ -42,23 +46,20 @@ export function About() {
                 <span className="h-px w-8 bg-secondary" />
                 A fundadora
               </p>
-              <h2 className="heading-2 mt-4">A história da Mariluci</h2>
+              <h2 className="heading-2 mt-4">{site.aboutStoryTitle}</h2>
             </div>
             <div className="space-y-5 leading-relaxed text-ink-soft sm:text-lg">
-              <p>
-                A história da Muni Moldes não começou em uma fábrica, e sim em uma cozinha. A
-                Mariluci, confeiteira, queria criar doces com detalhes únicos e percebeu que faltavam
-                no mercado moldes que fossem bonitos, bem acabados e duráveis.
-              </p>
-              <p>
-                Ela passou a testar e produzir os próprios moldes de silicone. O que era uma
-                ferramenta para uso próprio chamou a atenção de outras confeiteiras, e os pedidos
-                começaram a chegar.
-              </p>
-              <p className="border-l-2 border-primary-soft pl-4 text-ink">
-                Hoje a Muni Moldes é uma fábrica dedicada a moldes para confeitaria e artesanato,
-                com o mesmo cuidado no detalhe que deu origem a tudo.
-              </p>
+              {/* Com mais de um parágrafo, o último ganha destaque. */}
+              {story.map((paragraph, index) => (
+                <p
+                  key={index}
+                  className={`whitespace-pre-line ${
+                    story.length > 1 && index === story.length - 1 ? 'border-l-2 border-primary-soft pl-4 text-ink' : ''
+                  }`}
+                >
+                  {paragraph}
+                </p>
+              ))}
             </div>
           </div>
         </section>

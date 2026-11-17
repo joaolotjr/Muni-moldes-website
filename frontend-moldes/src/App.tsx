@@ -8,6 +8,8 @@ import { CollectionsList } from './pages/admin/CollectionsList';
 import { CollectionForm } from './pages/admin/CollectionForm';
 import { ToastProvider } from './contexts/ToastContext';
 import { ConfirmProvider } from './contexts/ConfirmContext';
+import { SiteProvider } from './contexts/SiteContext';
+import { Settings } from './pages/admin/Settings';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { Home } from './pages/public/Home';
 import { Catalog } from './pages/public/Catalog';
@@ -21,6 +23,7 @@ import { NewsForm } from './pages/admin/NewsForm';
 
 export default function App() {
   return (
+    <SiteProvider>
     <ToastProvider>
       <ConfirmProvider>
         <BrowserRouter>
@@ -51,6 +54,7 @@ export default function App() {
               <Route path="noticias" element={<NewsList />} />
               <Route path="noticias/nova" element={<NewsForm />} />
               <Route path="noticias/:id" element={<NewsForm />} />
+              <Route path="configuracoes" element={<Settings />} />
             </Route>
 
             {/* Catch all */}
@@ -59,5 +63,6 @@ export default function App() {
         </BrowserRouter>
       </ConfirmProvider>
     </ToastProvider>
+    </SiteProvider>
   );
 }

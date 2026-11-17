@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Mail, Menu, X } from 'lucide-react';
 import { InstagramIcon } from '../icons/InstagramIcon';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
-import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
+import { useSiteContext } from '../../contexts/SiteContext';
 
 const navItems = [
   { to: '/', label: 'Início', end: true },
@@ -21,7 +21,13 @@ export function PublicLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  const quoteUrl = whatsappLink(defaultQuoteMessage);
+  const { site, ready } = useSiteContext();
+  const quoteUrl = site.quoteUrl;
+
+  // Primeira visita: espera os dados de contato chegarem para não piscar valores de exemplo.
+  if (!ready) {
+    return <div className="min-h-screen bg-surface" aria-busy="true" />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-surface font-sans text-ink selection:bg-primary-soft selection:text-primary-dark">
@@ -121,19 +127,22 @@ export function PublicLayout() {
           <div>
             <p className="font-serif text-xl italic">{site.name}</p>
             <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-ink-soft">
-              Fábrica de moldes para chocolate e confeitaria. Atendemos pedidos em quantidade
-              para confeitarias, lojistas e revendedores.
+              {site.footerText}
             </p>
             <div className="mt-6 flex gap-2">
               <a href={quoteUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
                 <WhatsAppIcon className="h-5 w-5" />
               </a>
-              <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
-                <InstagramIcon className="h-5 w-5" />
-              </a>
-              <a href={`mailto:${site.email}`} aria-label="E-mail" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
-                <Mail className="h-5 w-5" />
-              </a>
+              {site.instagramUrl && (
+                <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                  <InstagramIcon className="h-5 w-5" />
+                </a>
+              )}
+              {site.email && (
+                <a href={`mailto:${site.email}`} aria-label="E-mail" className="flex h-11 w-11 items-center justify-center rounded-full text-outline transition-colors hover:bg-white hover:text-primary">
+                  <Mail className="h-5 w-5" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -158,12 +167,14 @@ export function PublicLayout() {
                     {site.phoneDisplay}
                   </a>
                 </li>
-                <li>
-                  <a href={`mailto:${site.email}`} className="text-[13px] underline-offset-4 hover:underline hover:decoration-primary-soft">
-                    {site.email}
-                  </a>
-                </li>
-                <li>{site.businessHours}</li>
+                {site.email && (
+                  <li>
+                    <a href={`mailto:${site.email}`} className="text-[13px] underline-offset-4 hover:underline hover:decoration-primary-soft">
+                      {site.email}
+                    </a>
+                  </li>
+                )}
+                {site.businessHours && <li>{site.businessHours}</li>}
               </ul>
             </div>
           </div>

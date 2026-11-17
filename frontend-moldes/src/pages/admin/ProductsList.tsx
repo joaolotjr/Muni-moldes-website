@@ -1,139 +1,194 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, Image as ImageIcon, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
-import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
+import { apiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import type { Collection, Product } from '../../types';
+
+function StatusChip({ active }: { active: boolean }) {
+  return active ? (
+    <span className="status-chip bg-secondary-soft text-secondary-dark">Ativo</span>
+  ) : (
+    <span className="status-chip border border-line/40 bg-line-soft text-ink-soft">Inativo</span>
+  );
+}
 
 export function ProductsList() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [collectionId, setCollectionId] = useState('');
+  const [status, setStatus] = useState('');
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
-  const fetchProducts = async () => {
-    try {
-      const response = await api.get('/products');
-      setProducts(response.data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchProducts();
+    Promise.all([api.get<Product[]>('/products'), api.get<Collection[]>('/collections')])
+      .then(([productsRes, collectionsRes]) => {
+        setProducts(productsRes.data);
+        setCollections(collectionsRes.data);
+      })
+      .catch(() => showToast('Erro ao carregar os produtos.', 'error'))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDelete = async (id: string) => {
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return products.filter(
+      (product) =>
+        (!term || product.name.toLowerCase().includes(term)) &&
+        (!collectionId || (collectionId === 'none' ? !product.collection : product.collection?.id === collectionId)) &&
+        (!status || (status === 'active') === (product.is_active !== false)),
+    );
+  }, [products, search, collectionId, status]);
+
+  const handleDelete = (product: Product) => {
     confirm({
-      title: 'Excluir Molde',
-      message: 'Tem certeza que deseja excluir este molde permanentemente?',
+      title: 'Excluir produto',
+      message: `Tem certeza que deseja excluir "${product.name}" e as fotos dele? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       onConfirm: async () => {
         try {
-          await api.delete(`/products/${id}`);
-          fetchProducts();
-          showToast('Molde excluído com sucesso.', 'success');
+          await api.delete(`/products/${product.id}`);
+          setProducts((current) => current.filter((item) => item.id !== product.id));
+          showToast('Produto excluído.', 'success');
         } catch (error) {
-          showToast('Erro ao excluir o molde.', 'error');
+          showToast(apiErrorMessage(error, 'Erro ao excluir o produto.'), 'error');
         }
-      }
+      },
     });
   };
 
+  const selectClass = 'input appearance-none bg-white py-2.5 pr-10';
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col gap-6 md:gap-10">
+      <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Moldes</h1>
-          <p className="text-slate-500 mt-1">Gerencie o catálogo de produtos da Muni Moldes.</p>
+          <h1 className="heading-2">Gerenciamento de produtos</h1>
+          <p className="mt-2 text-ink-soft">Gerencie os moldes que aparecem no catálogo do site.</p>
         </div>
-        <Link
-          to="/admin/produtos/novo"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm shadow-indigo-600/20"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Molde
+        <Link to="/admin/produtos/novo" className="btn btn-primary btn-plain w-full md:w-auto">
+          <Plus className="h-5 w-5" />
+          Novo produto
         </Link>
+      </header>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-line/30 bg-white p-4 shadow-soft sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-soft/70" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar pelo nome do molde..."
+            aria-label="Buscar pelo nome do molde"
+            className="input py-2.5 pl-10"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:ml-auto sm:flex">
+          <div className="relative sm:w-48">
+            <select value={collectionId} onChange={(e) => setCollectionId(e.target.value)} aria-label="Filtrar por categoria" className={selectClass}>
+              <option value="">Todas as categorias</option>
+              {collections.map((collection) => (
+                <option key={collection.id} value={collection.id}>{collection.name}</option>
+              ))}
+              <option value="none">Sem categoria</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
+          </div>
+          <div className="relative sm:w-36">
+            <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filtrar por status" className={selectClass}>
+              <option value="">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-outline" />
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100 text-sm font-semibold text-slate-600 uppercase tracking-wider">
-                <th className="p-4 pl-6">Produto</th>
-                <th className="p-4">Coleção</th>
-                <th className="p-4">Peso</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 pr-6 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">Carregando moldes...</td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">Nenhum molde cadastrado ainda.</td>
-                </tr>
-              ) : (
-                products.map((product) => (
-                  <tr key={product.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="p-4 pl-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                        {product.images && product.images.length > 0 ? (
-                          <img src={`${API_URL}${product.images[0].image_url}`} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-slate-400" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{product.name}</p>
-                        <p className="text-xs text-slate-500">/{product.slug}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
-                        {product.collection?.name || 'Sem Coleção'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-600 text-sm">
-                      {product.final_weight || '-'}
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${product.is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${product.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                        {product.is_active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="p-4 pr-6 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link
-                          to={`/admin/produtos/${product.id}`}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      <div className="overflow-hidden rounded-xl border border-line/20 bg-white shadow-soft">
+        <div className="hidden items-center border-b border-line/50 bg-surface-low px-6 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft md:flex">
+          <div className="min-w-0 flex-grow">Produto</div>
+          <div className="w-44">Categoria</div>
+          <div className="hidden w-44 lg:block">Medidas</div>
+          <div className="w-24">Status</div>
+          <div className="w-24 text-right">Ações</div>
         </div>
+
+        {loading ? (
+          <p className="px-6 py-10 text-center text-ink-soft">Carregando produtos...</p>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <p className="font-serif text-lg font-semibold">
+              {products.length === 0 ? 'Nenhum produto cadastrado ainda' : 'Nenhum produto encontrado'}
+            </p>
+            <p className="mt-2 text-sm text-ink-soft">
+              {products.length === 0 ? 'Cadastre o primeiro em "Novo produto".' : 'Tente outra busca ou outro filtro.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-line-soft/70">
+            {filtered.map((product) => {
+              const active = product.is_active !== false;
+              const cover = product.images?.[0]?.image_url;
+              const measures = [product.dimensions, product.final_weight].filter(Boolean).join(' • ');
+              return (
+                <li key={product.id} className={`flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-surface-mid/40 md:flex-row md:items-center md:gap-0 md:px-6 ${active ? '' : 'bg-surface-low/40'}`}>
+                  <div className="flex min-w-0 flex-grow items-center gap-4 md:pr-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded border border-line/20 bg-surface-mid shadow-sm ${active ? '' : 'opacity-70 grayscale'}`}>
+                      {cover ? (
+                        <img src={`${API_URL}${cover}`} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-5 w-5 text-outline/60" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <Link to={`/admin/produtos/${product.id}`} className={`block truncate text-[15px] font-semibold hover:text-primary ${active ? '' : 'text-ink-soft'}`}>
+                        {product.name}
+                      </Link>
+                      <p className="truncate text-sm text-ink-soft">/{product.slug}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 md:contents">
+                    <div className="min-w-0 truncate text-sm text-ink-soft md:w-44 md:shrink-0 md:pr-4 md:text-base md:text-ink">
+                      {product.collection?.name ?? 'Sem categoria'}
+                    </div>
+                    <div className="hidden w-44 shrink-0 truncate pr-4 text-sm text-ink-soft lg:block">{measures || '–'}</div>
+                    <div className="shrink-0 md:w-24">
+                      <StatusChip active={active} />
+                    </div>
+                    <div className="ml-auto flex shrink-0 justify-end gap-1 md:ml-0 md:w-24">
+                      <Link to={`/admin/produtos/${product.id}`} aria-label={`Editar ${product.name}`} title="Editar" className="icon-btn">
+                        <Pencil className="h-5 w-5" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(product)}
+                        aria-label={`Excluir ${product.name}`}
+                        title="Excluir"
+                        className="icon-btn hover:bg-[#ffdad6] hover:text-[#ba1a1a]"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {!loading && products.length > 0 && (
+          <div className="border-t border-line/50 px-6 py-4 text-sm text-ink-soft">
+            Mostrando {filtered.length} de {products.length} {products.length === 1 ? 'produto' : 'produtos'}
+          </div>
+        )}
       </div>
     </div>
   );

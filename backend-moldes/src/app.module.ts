@@ -9,6 +9,7 @@ import { CollectionsModule } from './collections/collections.module';
 import { ProductsModule } from './products/products.module';
 import { StorageModule } from './storage/storage.module';
 import { NewsModule } from './news/news.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { NewsModule } from './news/news.module';
     CollectionsModule,
     ProductsModule,
     NewsModule,
+    SettingsModule,
     StorageModule,
   ],
   controllers: [AppController],

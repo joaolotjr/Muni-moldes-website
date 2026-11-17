@@ -19,7 +19,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: ToastType = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = Math.random().toString(36).slice(2, 11);
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
@@ -30,16 +30,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed bottom-6 left-1/2 z-[100] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col gap-3 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`animate-in slide-in-from-bottom-4 fade-in duration-300 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 pointer-events-auto ${
               toast.type === 'error'
-                ? 'bg-rose-600 text-white'
+                ? 'bg-[#ba1a1a] text-white'
                 : toast.type === 'success'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-indigo-600 text-white'
+                ? 'bg-secondary text-white'
+                : 'bg-primary text-white'
             }`}
           >
             {toast.type === 'error' ? (
@@ -57,6 +57,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) throw new Error('useToast must be used within ToastProvider');

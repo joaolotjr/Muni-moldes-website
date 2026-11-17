@@ -3,7 +3,7 @@ import { Clock, Mail, MapPin, Send } from 'lucide-react';
 import { PageHeader } from '../../components/public/PageHeader';
 import { InstagramIcon } from '../../components/icons/InstagramIcon';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
-import { defaultQuoteMessage, site, whatsappLink } from '../../config/site';
+import { useSite } from '../../contexts/SiteContext';
 
 const subjects = [
   'Orçamento para atacado ou revenda',
@@ -28,6 +28,7 @@ function Channel({ icon, label, children }: { icon: ReactNode; label: string; ch
 }
 
 export function Contact() {
+  const site = useSite();
   const [form, setForm] = useState({ name: '', company: '', city: '', subject: subjects[0], message: '' });
 
   const update = (field: keyof typeof form) => (
@@ -41,7 +42,7 @@ export function Contact() {
     if (form.company) lines.push(`Empresa: ${form.company}`);
     if (form.city) lines.push(`Cidade: ${form.city}`);
     lines.push(`Assunto: ${form.subject}`, '', form.message);
-    window.open(whatsappLink(lines.join('\n')), '_blank', 'noopener');
+    window.open(site.whatsappLink(lines.join('\n')), '_blank', 'noopener');
   };
 
   return (
@@ -55,28 +56,36 @@ export function Contact() {
         <div className="rounded-2xl border border-line-soft bg-surface-low p-6 sm:p-10 lg:order-2 lg:col-span-5">
           <h2 className="heading-3">Canais de atendimento</h2>
           <div className="mt-6 space-y-6">
-            <Channel icon={<Mail className="h-5 w-5" />} label="E-mail">
-              <a href={`mailto:${site.email}`} className="break-all hover:text-primary">{site.email}</a>
-            </Channel>
-            <Channel icon={<InstagramIcon className="h-5 w-5" />} label="Instagram">
-              <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                {site.instagramHandle}
-              </a>
-            </Channel>
-            <Channel icon={<Clock className="h-5 w-5" />} label="Horário">
-              <p>{site.businessHours}</p>
-            </Channel>
-            <Channel icon={<MapPin className="h-5 w-5" />} label="Fábrica">
-              <p className="leading-relaxed">
-                {site.addressLines.map((line) => (
-                  <span key={line} className="block">{line}</span>
-                ))}
-              </p>
-            </Channel>
+            {site.email && (
+              <Channel icon={<Mail className="h-5 w-5" />} label="E-mail">
+                <a href={`mailto:${site.email}`} className="break-all hover:text-primary">{site.email}</a>
+              </Channel>
+            )}
+            {site.instagramUrl && (
+              <Channel icon={<InstagramIcon className="h-5 w-5" />} label="Instagram">
+                <a href={site.instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                  {site.instagramHandle}
+                </a>
+              </Channel>
+            )}
+            {site.businessHours && (
+              <Channel icon={<Clock className="h-5 w-5" />} label="Horário">
+                <p>{site.businessHours}</p>
+              </Channel>
+            )}
+            {site.addressLines.length > 0 && (
+              <Channel icon={<MapPin className="h-5 w-5" />} label="Fábrica">
+                <p className="leading-relaxed">
+                  {site.addressLines.map((line) => (
+                    <span key={line} className="block">{line}</span>
+                  ))}
+                </p>
+              </Channel>
+            )}
           </div>
           <div className="mt-6 border-t border-line/40 pt-6">
             <a
-              href={whatsappLink(defaultQuoteMessage)}
+              href={site.quoteUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-whatsapp w-full py-4"

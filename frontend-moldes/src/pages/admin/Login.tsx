@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
-import { api, setAuthToken } from '../../services/api';
+import { api, setAuthToken, setUserName } from '../../services/api';
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface-low py-3.5 pl-12 text-base text-ink shadow-sm transition-colors placeholder:text-ink-soft/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
@@ -23,6 +23,7 @@ export function Login() {
     try {
       const response = await api.post('/auth/login', { email, password });
       setAuthToken(response.data.access_token);
+      setUserName(response.data.user?.name);
       navigate('/admin');
     } catch (err) {
       const message = isAxiosError(err) ? err.response?.data?.message : undefined;

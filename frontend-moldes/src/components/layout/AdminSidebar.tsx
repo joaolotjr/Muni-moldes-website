@@ -1,25 +1,24 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, FolderTree, Newspaper, LogOut } from 'lucide-react';
+import { FolderTree, LayoutDashboard, LogOut, Newspaper, Package, Settings } from 'lucide-react';
 import { logout } from '../../services/api';
 
-export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const navItems = [
-    { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-    { name: 'Produtos', path: '/admin/produtos', icon: Package },
-    { name: 'Coleções', path: '/admin/colecoes', icon: FolderTree },
-    { name: 'Notícias', path: '/admin/noticias', icon: Newspaper },
-  ];
+const navItems = [
+  { name: 'Painel', path: '/admin', icon: LayoutDashboard, exact: true },
+  { name: 'Produtos', path: '/admin/produtos', icon: Package, exact: false },
+  { name: 'Categorias', path: '/admin/colecoes', icon: FolderTree, exact: false },
+  { name: 'Notícias', path: '/admin/noticias', icon: Newspaper, exact: false },
+  { name: 'Configurações', path: '/admin/configuracoes', icon: Settings, exact: false },
+];
 
+export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <aside className="w-64 shrink-0 bg-slate-900 text-slate-300 h-full flex flex-col shadow-2xl z-10">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30"></div>
-          Muni Admin
-        </h1>
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-line/30 bg-white">
+      <div className="flex h-16 items-center justify-center gap-3 border-b border-line/30 px-6 md:h-20">
+        <img src="/logo.png" alt="" className="h-9 w-9" />
+        <span className="font-serif text-xl font-semibold tracking-tight text-primary">Muni Moldes</span>
       </div>
-      
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+
+      <nav className="flex flex-1 flex-col gap-2 p-4" aria-label="Painel">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
@@ -27,28 +26,25 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
             end={item.exact}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                isActive
-                  ? 'bg-indigo-500/10 text-indigo-400 font-medium shadow-sm'
-                  : 'hover:bg-slate-800/50 hover:text-slate-100'
+              `flex min-h-11 items-center gap-4 rounded-lg px-4 text-[13px] font-semibold tracking-[0.05em] transition-colors ${
+                isActive ? 'bg-primary-soft text-primary-dark' : 'text-ink-soft hover:bg-line-soft'
               }`
             }
           >
-            <item.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+            <item.icon className="h-5 w-5" />
             {item.name}
           </NavLink>
         ))}
-      </nav>
 
-      <div className="p-4 border-t border-slate-800">
         <button
+          type="button"
           onClick={logout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl transition-all duration-200 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 group"
+          className="mt-auto flex min-h-11 items-center gap-4 rounded-lg px-4 text-[13px] font-semibold tracking-[0.05em] text-ink-soft transition-colors hover:bg-[#ffdad6] hover:text-[#93000a]"
         >
-          <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-          Sair do Sistema
+          <LogOut className="h-5 w-5" />
+          Sair
         </button>
-      </div>
+      </nav>
     </aside>
   );
 }
