@@ -20,6 +20,10 @@ import { News } from './pages/public/News';
 import { NewsArticle } from './pages/public/NewsArticle';
 import { NewsList } from './pages/admin/NewsList';
 import { NewsForm } from './pages/admin/NewsForm';
+import { UsersList } from './pages/admin/UsersList';
+import { UserForm } from './pages/admin/UserForm';
+import { Account } from './pages/admin/Account';
+import { RequirePermission } from './components/admin/RequirePermission';
 
 export default function App() {
   return (
@@ -45,16 +49,20 @@ export default function App() {
             {/* Admin Area */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="produtos" element={<ProductsList />} />
-              <Route path="produtos/novo" element={<ProductForm />} />
-              <Route path="produtos/:id" element={<ProductForm />} />
-              <Route path="colecoes" element={<CollectionsList />} />
-              <Route path="colecoes/nova" element={<CollectionForm />} />
-              <Route path="colecoes/:id" element={<CollectionForm />} />
-              <Route path="noticias" element={<NewsList />} />
-              <Route path="noticias/nova" element={<NewsForm />} />
-              <Route path="noticias/:id" element={<NewsForm />} />
-              <Route path="configuracoes" element={<Settings />} />
+              <Route path="produtos" element={<RequirePermission permission="products"><ProductsList /></RequirePermission>} />
+              <Route path="produtos/novo" element={<RequirePermission permission="products"><ProductForm /></RequirePermission>} />
+              <Route path="produtos/:id" element={<RequirePermission permission="products"><ProductForm /></RequirePermission>} />
+              <Route path="colecoes" element={<RequirePermission permission="collections"><CollectionsList /></RequirePermission>} />
+              <Route path="colecoes/nova" element={<RequirePermission permission="collections"><CollectionForm /></RequirePermission>} />
+              <Route path="colecoes/:id" element={<RequirePermission permission="collections"><CollectionForm /></RequirePermission>} />
+              <Route path="noticias" element={<RequirePermission permission="news"><NewsList /></RequirePermission>} />
+              <Route path="noticias/nova" element={<RequirePermission permission="news"><NewsForm /></RequirePermission>} />
+              <Route path="noticias/:id" element={<RequirePermission permission="news"><NewsForm /></RequirePermission>} />
+              <Route path="configuracoes" element={<RequirePermission permission="settings"><Settings /></RequirePermission>} />
+              <Route path="usuarios" element={<RequirePermission permission="users"><UsersList /></RequirePermission>} />
+              <Route path="usuarios/novo" element={<RequirePermission permission="users"><UserForm /></RequirePermission>} />
+              <Route path="usuarios/:id" element={<RequirePermission permission="users"><UserForm /></RequirePermission>} />
+              <Route path="minha-conta" element={<Account />} />
             </Route>
 
             {/* Catch all */}

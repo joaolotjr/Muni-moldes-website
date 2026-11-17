@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { sessionIdleMinutes } from './session';
 
 @Module({
   imports: [
@@ -13,9 +14,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1d' }, // Token expires in 1 day
+        // Um minuto de folga sobre o tempo de inatividade, para a renovação feita
+        // pelo painel não disputar corrida com o vencimento do token.
+        signOptions: { expiresIn: `${sessionIdleMinutes(configService) + 1}m` },
       }),
       inject: [ConfigService],
     }),

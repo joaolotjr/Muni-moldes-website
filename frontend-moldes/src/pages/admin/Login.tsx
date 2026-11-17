@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
-import { api, setAuthToken, setUserName } from '../../services/api';
+import { api } from '../../services/api';
+import { saveSession, type SessionResponse } from '../../services/session';
+
+const logoutNotices: Record<string, string> = {
+  inatividade: 'Sua sessão foi encerrada por inatividade. Entre novamente para continuar.',
+  expirada: 'Sua sessão expirou. Entre novamente para continuar.',
+};
 
 const inputClass =
   'w-full rounded-lg border border-line bg-surface-low py-3.5 pl-12 text-base text-ink shadow-sm transition-colors placeholder:text-ink-soft/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
@@ -14,6 +20,8 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const notice = logoutNotices[searchParams.get('motivo') ?? ''];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,10 +29,9 @@ export function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { email, password });
-      setAuthToken(response.data.access_token);
-      setUserName(response.data.user?.name);
-      navigate('/admin');
+      const response = await api.post<SessionResponse>('/auth/login', { email, password });
+      saveSession(response.data, { activity: true });
+      navigate('/admin', { replace: true });
     } catch (err) {
       const message = isAxiosError(err) ? err.response?.data?.message : undefined;
       setError(
@@ -52,6 +59,11 @@ export function Login() {
           </div>
 
           <form onSubmit={handleLogin} className="flex w-full flex-col gap-5">
+            {notice && !error && (
+              <div role="status" className="rounded-lg border border-line bg-surface-low px-4 py-3 text-center text-sm font-medium text-ink-soft">
+                {notice}
+              </div>
+            )}
             {error && (
               <div role="alert" className="rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-center text-sm font-medium text-[#93000a]">
                 {error}

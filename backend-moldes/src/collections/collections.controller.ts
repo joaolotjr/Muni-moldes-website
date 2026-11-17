@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Auth } from '../auth/auth.decorator';
 
 import { Collection } from './entities/collection.entity';
 
@@ -18,19 +18,19 @@ export class CollectionsController {
     return this.collectionsService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('collections')
   @Post()
   create(@Body() body: Partial<Collection>) {
     return this.collectionsService.create(body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('collections')
   @Put(':id')
   update(@Param('id') id: string, @Body() body: Partial<Collection>) {
     return this.collectionsService.update(id, body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('collections')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.collectionsService.remove(id);

@@ -3,15 +3,25 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users/users.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthUser } from './permissions';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  const authService = { validateUser: jest.fn(), login: jest.fn() };
-  const usersService = { create: jest.fn() };
+  const authService = {
+    validateUser: jest.fn(),
+    login: jest.fn(),
+    refresh: jest.fn(),
+  };
+  const usersService = { changeOwnPassword: jest.fn() };
+  const current: AuthUser = {
+    userId: 'user-1',
+    name: 'Ana',
+    email: 'ana@b.com',
+    permissions: ['news'],
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -27,13 +37,11 @@ describe('AuthController', () => {
     it('devolve o token quando as credenciais conferem', async () => {
       const user = { id: 'user-1', email: 'ana@b.com' };
       authService.validateUser.mockResolvedValue(user);
-      authService.login.mockResolvedValue({ access_token: 'token' });
+      authService.login.mockReturnValue({ access_token: 'token' });
 
       await expect(
         controller.login({ email: 'ana@b.com', password: 'segredo123' }),
-      ).resolves.toEqual({
-        access_token: 'token',
-      });
+      ).resolves.toEqual({ access_token: 'token' });
       expect(authService.validateUser).toHaveBeenCalledWith(
         'ana@b.com',
         'segredo123',
@@ -51,28 +59,32 @@ describe('AuthController', () => {
     });
   });
 
-  describe('register', () => {
-    it('cria o usuário e devolve só o id', async () => {
-      usersService.create.mockResolvedValue({
-        id: 'user-2',
-        password_hash: 'hash',
-      });
+  it('refresh renova a sessão de quem está logado', () => {
+    authService.refresh.mockReturnValue({ access_token: 'novo' });
 
-      const result = await controller.register({
-        name: 'Bia',
-        email: 'bia@b.com',
-        password: 'segredo123',
-      });
+    expect(controller.refresh(current)).toEqual({ access_token: 'novo' });
+    expect(authService.refresh).toHaveBeenCalledWith(current);
+  });
 
-      expect(usersService.create).toHaveBeenCalledWith(
-        'Bia',
-        'bia@b.com',
-        'segredo123',
-      );
-      expect(result).toEqual({
-        message: 'Usuário criado com sucesso',
-        userId: 'user-2',
-      });
+  it('me devolve os dados de quem está logado', () => {
+    expect(controller.me(current)).toEqual({
+      id: 'user-1',
+      name: 'Ana',
+      email: 'ana@b.com',
+      permissions: ['news'],
     });
+  });
+
+  it('changePassword troca a senha de quem está logado', async () => {
+    await controller.changePassword(current, {
+      current_password: 'atual1234',
+      new_password: 'novasenha1',
+    });
+
+    expect(usersService.changeOwnPassword).toHaveBeenCalledWith(
+      'user-1',
+      'atual1234',
+      'novasenha1',
+    );
   });
 });

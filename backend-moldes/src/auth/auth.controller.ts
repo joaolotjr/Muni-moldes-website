@@ -1,9 +1,19 @@
-import { Controller, Post, Body, UnauthorizedException, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Put,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
+import { Auth, CurrentUser } from './auth.decorator';
+import { AuthService } from './auth.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import type { AuthUser } from './permissions';
 
 @Controller('auth')
 export class AuthController {
@@ -15,21 +25,47 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+    const user = await this.authService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
     if (!user) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
     return this.authService.login(user);
   }
 
-  // Apenas usuários logados (administradores) podem registrar novos usuários
-  @UseGuards(JwtAuthGuard)
-  @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    const user = await this.usersService.create(registerDto.name, registerDto.email, registerDto.password);
+  // Renova a sessão de quem está ativo no painel.
+  @Auth()
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh')
+  refresh(@CurrentUser() user: AuthUser) {
+    return this.authService.refresh(user);
+  }
+
+  @Auth()
+  @Get('me')
+  me(@CurrentUser() user: AuthUser) {
     return {
-      message: 'Usuário criado com sucesso',
-      userId: user.id,
+      id: user.userId,
+      name: user.name,
+      email: user.email,
+      permissions: user.permissions,
     };
+  }
+
+  // Troca da própria senha, para qualquer usuário logado.
+  @Auth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Put('password')
+  async changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.usersService.changeOwnPassword(
+      user.userId,
+      dto.current_password,
+      dto.new_password,
+    );
   }
 }

@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Auth } from '../auth/auth.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Product } from './entities/product.entity';
 import { StorageService } from '../storage/storage.service';
@@ -23,25 +23,25 @@ export class ProductsController {
     return this.productsService.findOne(slug);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Post()
   create(@Body() body: Partial<Product>) {
     return this.productsService.create(body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Put(':id')
   update(@Param('id') id: string, @Body() body: Partial<Product>) {
     return this.productsService.update(id, body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
@@ -54,7 +54,7 @@ export class ProductsController {
     return this.productsService.addImage(id, imageUrl, isCover === 'true');
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Delete(':id/images/:imageId')
   removeImage(@Param('imageId') imageId: string) {
     return this.productsService.removeImage(imageId);

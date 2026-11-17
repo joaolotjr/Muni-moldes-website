@@ -48,3 +48,12 @@ export interface NewsPost {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  permissions: import('./config/permissions').Permission[];
+  is_active: boolean;
+  created_at: string;
+}

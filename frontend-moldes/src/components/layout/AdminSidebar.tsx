@@ -1,16 +1,33 @@
 import { NavLink } from 'react-router-dom';
-import { FolderTree, LayoutDashboard, LogOut, Newspaper, Package, Settings } from 'lucide-react';
+import { FolderTree, LayoutDashboard, LogOut, Newspaper, Package, Settings, Users, type LucideIcon } from 'lucide-react';
 import { logout } from '../../services/api';
+import { useSessionUser } from '../../services/session';
+import type { Permission } from '../../config/permissions';
 
-const navItems = [
+interface NavItem {
+  name: string;
+  path: string;
+  icon: LucideIcon;
+  exact: boolean;
+  /** Sem permissão definida, o item aparece para qualquer usuário logado. */
+  permission?: Permission;
+}
+
+const navItems: NavItem[] = [
   { name: 'Painel', path: '/admin', icon: LayoutDashboard, exact: true },
-  { name: 'Produtos', path: '/admin/produtos', icon: Package, exact: false },
-  { name: 'Categorias', path: '/admin/colecoes', icon: FolderTree, exact: false },
-  { name: 'Notícias', path: '/admin/noticias', icon: Newspaper, exact: false },
-  { name: 'Configurações', path: '/admin/configuracoes', icon: Settings, exact: false },
+  { name: 'Produtos', path: '/admin/produtos', icon: Package, exact: false, permission: 'products' },
+  { name: 'Categorias', path: '/admin/colecoes', icon: FolderTree, exact: false, permission: 'collections' },
+  { name: 'Notícias', path: '/admin/noticias', icon: Newspaper, exact: false, permission: 'news' },
+  { name: 'Configurações', path: '/admin/configuracoes', icon: Settings, exact: false, permission: 'settings' },
+  { name: 'Usuários', path: '/admin/usuarios', icon: Users, exact: false, permission: 'users' },
 ];
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const user = useSessionUser();
+  const visibleItems = navItems.filter(
+    (item) => !item.permission || user?.permissions.includes(item.permission),
+  );
+
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-line/30 bg-white">
       <div className="flex h-16 items-center justify-center gap-3 border-b border-line/30 px-6 md:h-20">
@@ -19,7 +36,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 p-4" aria-label="Painel">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -38,7 +55,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         <button
           type="button"
-          onClick={logout}
+          onClick={() => logout()}
           className="mt-auto flex min-h-11 items-center gap-4 rounded-lg px-4 text-[13px] font-semibold tracking-[0.05em] text-ink-soft transition-colors hover:bg-[#ffdad6] hover:text-[#93000a]"
         >
           <LogOut className="h-5 w-5" />
