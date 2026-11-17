@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, ChevronRight, CloudUpload, Eye, Info, Loader2, Plus, Ruler, Save, X } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
 import { apiErrorMessage } from '../../utils/apiError';
+import { ACCEPTED_IMAGES, imageFormData, imageRejection } from '../../utils/images';
 import { isoToLocalInput, localInputToIso } from '../../utils/dates';
 import { slugify } from '../../utils/slugify';
 import { useToast } from '../../contexts/ToastContext';
@@ -10,8 +11,6 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import { VisibilityFields } from '../../components/admin/VisibilityFields';
 import type { Collection, Product, ProductImage } from '../../types';
 
-const ACCEPTED_IMAGES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 const emptyForm = {
   name: '',
@@ -88,10 +87,9 @@ export function ProductForm() {
     e.target.value = '';
     const accepted: File[] = [];
     for (const file of chosen) {
-      if (!ACCEPTED_IMAGES.includes(file.type)) {
-        showToast(`"${file.name}" não é uma imagem JPG, PNG, WebP, GIF ou AVIF.`, 'error');
-      } else if (file.size > MAX_IMAGE_BYTES) {
-        showToast(`"${file.name}" passa de 10 MB.`, 'error');
+      const rejection = imageRejection(file);
+      if (rejection) {
+        showToast(rejection, 'error');
       } else if ([...queue, ...accepted].some((item) => item.name === file.name && item.size === file.size)) {
         showToast(`"${file.name}" já está na fila.`, 'error');
       } else {
@@ -157,8 +155,8 @@ export function ProductForm() {
     let sent = 0;
     try {
       for (const file of queue) {
-        const body = new FormData();
-        body.append('file', file);
+        // A foto é reduzida no navegador antes de subir; o servidor gera a versão final.
+        const body = await imageFormData(file);
         if (images.length === 0 && sent === 0) body.append('isCover', 'true');
         await api.post(`/products/${productId}/images`, body);
         sent += 1;
@@ -327,7 +325,7 @@ export function ProductForm() {
               <span>
                 <span className="font-bold text-primary">Clique para escolher</span> as fotos
               </span>
-              <span className="mt-1 text-sm text-outline">JPG, PNG ou WebP, até 10 MB cada</span>
+              <span className="mt-1 text-sm text-outline">JPG, PNG ou WebP. As fotos são compactadas automaticamente.</span>
             </button>
 
             {totalImages > 0 && (

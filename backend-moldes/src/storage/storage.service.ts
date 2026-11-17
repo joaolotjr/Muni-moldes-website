@@ -16,21 +16,13 @@ import { createReadStream } from 'fs';
 import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Readable } from 'stream';
+import { processImage, UnreadableImageError } from './image-processing';
 
 export interface StoredFile {
   stream: Readable;
   contentType?: string;
   contentLength?: number;
 }
-
-// Tipos de imagem aceitos no upload e a extensão gravada para cada um.
-const IMAGE_EXTENSIONS: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-  'image/gif': '.gif',
-  'image/avif': '.avif',
-};
 
 const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -80,19 +72,33 @@ export class StorageService {
   }
 
   /**
-   * Valida e guarda uma imagem enviada pelo painel. Devolve o endereço público
-   * (/uploads/<arquivo>). O nome vem de um UUID e a extensão do tipo do arquivo,
-   * nunca do nome enviado.
+   * Compacta e guarda uma imagem enviada pelo painel. Devolve o endereço público
+   * (/uploads/<arquivo>). Toda foto é guardada em WebP, já reduzida e sem
+   * metadados; o nome vem de um UUID, nunca do nome enviado.
    */
   async saveImage(file: Express.Multer.File | undefined): Promise<string> {
-    const extension = file && IMAGE_EXTENSIONS[file.mimetype];
-    if (!file || !extension) {
+    if (!file) {
+      throw new BadRequestException('Envie uma imagem.');
+    }
+
+    let processed: Awaited<ReturnType<typeof processImage>>;
+    try {
+      processed = await processImage(file.buffer);
+    } catch (error) {
+      if (!(error instanceof UnreadableImageError)) throw error;
+      this.logger.warn(
+        `Imagem recusada (${file.mimetype}, ${file.size} bytes): ${error.message}`,
+      );
       throw new BadRequestException(
-        'Envie uma imagem JPG, PNG, WebP, GIF ou AVIF.',
+        'Não foi possível ler esta imagem. Envie uma foto em JPG, PNG ou WebP.',
       );
     }
-    const key = `${randomUUID()}${extension}`;
-    await this.save(key, file.buffer, file.mimetype);
+
+    const key = `${randomUUID()}.webp`;
+    await this.save(key, processed.buffer, 'image/webp');
+    this.logger.log(
+      `Foto guardada: ${file.size} -> ${processed.buffer.length} bytes (${processed.width}x${processed.height})`,
+    );
     return `/uploads/${key}`;
   }
 

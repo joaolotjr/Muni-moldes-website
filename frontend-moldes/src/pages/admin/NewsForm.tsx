@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import {
   ArrowLeft, Bold, ChevronDown, CloudUpload, Eye, Heading2, Italic, Link as LinkIcon,
   List, ListOrdered, Loader2, Pencil, Tag, Trash2, Upload, X,
@@ -8,22 +7,17 @@ import {
 import { api, API_URL } from '../../services/api';
 import { EXCERPT_MAX_LENGTH, newsCategories } from '../../config/news';
 import { useToast } from '../../contexts/ToastContext';
+import { apiErrorMessage } from '../../utils/apiError';
+import { ACCEPTED_IMAGES, imageFormData, imageRejection } from '../../utils/images';
 import { Markdown } from '../../components/public/Markdown';
 import type { NewsCategory, NewsPost, NewsStatus } from '../../types';
 
 const MAX_TAGS = 10;
-const ACCEPTED_IMAGES = 'image/jpeg,image/png,image/webp,image/gif,image/avif';
 
 const panelClass = 'rounded-xl border border-line-soft bg-white p-5 shadow-soft sm:p-6';
 const labelClass = 'mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft';
 const inputClass =
   'w-full rounded border border-line bg-surface-low px-3 py-2.5 text-base text-ink transition-colors placeholder:text-line focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
-
-function apiErrorMessage(error: unknown, fallback: string) {
-  const message = isAxiosError(error) ? error.response?.data?.message : undefined;
-  if (Array.isArray(message)) return message.join('. ');
-  return typeof message === 'string' ? message : fallback;
-}
 
 function ToolbarButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
@@ -145,12 +139,9 @@ export function NewsForm() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (!ACCEPTED_IMAGES.split(',').includes(file.type)) {
-      showToast('Envie uma imagem JPG, PNG, WebP, GIF ou AVIF.', 'error');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('A imagem pode ter até 10 MB.', 'error');
+    const rejection = imageRejection(file);
+    if (rejection) {
+      showToast(rejection, 'error');
       return;
     }
     setCoverFile(file);
@@ -185,9 +176,8 @@ export function NewsForm() {
     // O texto já foi salvo; a imagem vai em uma segunda chamada.
     try {
       if (coverFile) {
-        const body = new FormData();
-        body.append('file', coverFile);
-        await api.post(`/news/${postId}/cover`, body);
+        // A imagem é reduzida no navegador antes de subir; o servidor gera a versão final.
+        await api.post(`/news/${postId}/cover`, await imageFormData(coverFile));
       } else if (removeCover) {
         await api.delete(`/news/${postId}/cover`);
       }
@@ -318,7 +308,7 @@ export function NewsForm() {
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
           <div className={panelClass}>
             <h2 className="heading-3 mb-4">Imagem de destaque</h2>
-            <input ref={fileRef} type="file" accept={ACCEPTED_IMAGES} onChange={handleFile} className="sr-only" tabIndex={-1} />
+            <input ref={fileRef} type="file" accept={ACCEPTED_IMAGES.join(',')} onChange={handleFile} className="sr-only" tabIndex={-1} />
             {coverSrc ? (
               <div>
                 <img src={coverSrc} alt="Imagem de destaque escolhida" className="aspect-[4/3] w-full rounded-lg object-cover" />

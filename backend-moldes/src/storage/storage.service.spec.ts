@@ -10,6 +10,7 @@ import { existsSync } from 'fs';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import sharp from 'sharp';
 import { Readable } from 'stream';
 import { StorageService } from './storage.service';
 
@@ -39,41 +40,62 @@ describe('StorageService', () => {
   });
 
   describe('saveImage', () => {
-    const upload = (mimetype: string) =>
+    const upload = (buffer: Buffer, mimetype = 'image/jpeg') =>
       ({
         mimetype,
-        buffer: Buffer.from('conteudo'),
+        buffer,
+        size: buffer.length,
         originalname: 'qualquer.exe',
       }) as Express.Multer.File;
+    const jpeg = () =>
+      sharp({
+        create: { width: 3000, height: 2000, channels: 3, background: '#a65' },
+      })
+        .jpeg()
+        .toBuffer();
     let service: StorageService;
     let save: jest.SpyInstance;
 
     beforeEach(() => {
       service = new StorageService(configWith({}));
       save = jest.spyOn(service, 'save').mockResolvedValue(undefined);
+      jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     });
 
-    it('guarda com nome aleatório e devolve o endereço público', async () => {
-      const url = await service.saveImage(upload('image/png'));
+    it('guarda a versão compactada em WebP, com nome aleatório', async () => {
+      const url = await service.saveImage(upload(await jpeg()));
 
-      // O nome vem de um UUID e a extensão do tipo do arquivo, nunca do nome enviado.
-      expect(url).toMatch(/^\/uploads\/[0-9a-f-]{36}\.png$/);
-      expect(save).toHaveBeenCalledWith(
-        url.replace('/uploads/', ''),
-        Buffer.from('conteudo'),
-        'image/png',
+      // O nome vem de um UUID, nunca do nome enviado; a extensão é sempre .webp.
+      expect(url).toMatch(/^\/uploads\/[0-9a-f-]{36}\.webp$/);
+      const [key, body, contentType] = save.mock.calls[0];
+      expect(key).toBe(url.replace('/uploads/', ''));
+      expect(contentType).toBe('image/webp');
+      const meta = await sharp(body as Buffer).metadata();
+      expect([meta.format, meta.width, meta.height]).toEqual([
+        'webp',
+        2000,
+        1333,
+      ]);
+    });
+
+    it('confere o conteúdo, não o tipo declarado pelo navegador', async () => {
+      await expect(
+        service.saveImage(upload(Buffer.from('<html></html>'), 'image/jpeg')),
+      ).rejects.toThrow(BadRequestException);
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('recusa SVG', async () => {
+      const svg = Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>',
       );
-    });
 
-    it.each(['application/pdf', 'text/html', 'image/svg+xml'])(
-      'recusa arquivo do tipo %s',
-      async (mimetype) => {
-        await expect(service.saveImage(upload(mimetype))).rejects.toThrow(
-          BadRequestException,
-        );
-        expect(save).not.toHaveBeenCalled();
-      },
-    );
+      await expect(
+        service.saveImage(upload(svg, 'image/svg+xml')),
+      ).rejects.toThrow(BadRequestException);
+      expect(save).not.toHaveBeenCalled();
+    });
 
     it('recusa requisição sem arquivo', async () => {
       await expect(service.saveImage(undefined)).rejects.toThrow(

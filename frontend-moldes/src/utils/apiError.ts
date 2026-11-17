@@ -4,5 +4,8 @@ import { isAxiosError } from 'axios';
 export function apiErrorMessage(error: unknown, fallback: string): string {
   const message = isAxiosError(error) ? error.response?.data?.message : undefined;
   if (Array.isArray(message)) return message.join('. ');
-  return typeof message === 'string' ? message : fallback;
+  if (typeof message === 'string') return message;
+  // Erro gerado no próprio navegador (ex.: foto grande demais), que já traz o texto pronto.
+  if (!isAxiosError(error) && error instanceof Error && error.message) return error.message;
+  return fallback;
 }
