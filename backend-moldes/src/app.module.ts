@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -10,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 import { StorageModule } from './storage/storage.module';
 import { NewsModule } from './news/news.module';
 import { SettingsModule } from './settings/settings.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -28,6 +31,13 @@ import { SettingsModule } from './settings/settings.module';
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
       }),
     }),
+    // Limite geral por IP, contra abuso e robôs. O login tem um limite próprio,
+    // bem mais apertado (ver AuthController).
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 600 }],
+      errorMessage: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+    }),
+    AuditModule,
     UsersModule,
     AuthModule,
     CollectionsModule,
@@ -37,6 +47,6 @@ import { SettingsModule } from './settings/settings.module';
     StorageModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

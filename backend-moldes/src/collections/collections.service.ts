@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, DeepPartial } from 'typeorm';
 import { Collection } from './entities/collection.entity';
+import { assertValidSchedule, saveWithClearErrors } from '../common/save-rules';
+import { CreateCollectionDto, UpdateCollectionDto } from './dto/save-collection.dto';
 
 @Injectable()
 export class CollectionsService {
@@ -10,9 +12,13 @@ export class CollectionsService {
     private collectionsRepository: Repository<Collection>,
   ) {}
 
-  async create(collectionData: Partial<Collection>): Promise<Collection> {
-    const collection = this.collectionsRepository.create(collectionData);
-    return this.collectionsRepository.save(collection);
+  async create(data: CreateCollectionDto): Promise<Collection> {
+    assertValidSchedule(data);
+    return saveWithClearErrors(() =>
+      this.collectionsRepository.save(
+        this.collectionsRepository.create(data as DeepPartial<Collection>),
+      ),
+    );
   }
 
   async findAll(isPublic: boolean = false): Promise<Collection[]> {
@@ -45,8 +51,12 @@ export class CollectionsService {
     return collection;
   }
 
-  async update(id: string, collectionData: Partial<Collection>): Promise<Collection> {
-    await this.collectionsRepository.update(id, collectionData);
+  async update(id: string, data: UpdateCollectionDto): Promise<Collection> {
+    const current = await this.findOne(id);
+    assertValidSchedule(data, current);
+    await saveWithClearErrors(() =>
+      this.collectionsRepository.update(id, data as DeepPartial<Collection>),
+    );
     return this.findOne(id);
   }
 

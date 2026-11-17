@@ -1,78 +1,170 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { AuditService } from '../audit/audit.service';
 import { UsersService } from '../users/users.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthUser } from './permissions';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  const authService = { validateUser: jest.fn(), login: jest.fn() };
-  const usersService = { create: jest.fn() };
+  const authService = {
+    validateUser: jest.fn(),
+    login: jest.fn(),
+    refresh: jest.fn(),
+  };
+  const usersService = { changeOwnPassword: jest.fn() };
+  const audit = { record: jest.fn() };
+  const req = { ip: '10.0.0.7' } as Request;
+  const res = { cookie: jest.fn(), clearCookie: jest.fn() };
+  const response = res as unknown as Response;
+  const current: AuthUser = {
+    userId: 'user-1',
+    name: 'Ana',
+    email: 'ana@b.com',
+    permissions: ['news'],
+  };
+  const session = {
+    token: 'token-secreto',
+    tokenMinutes: 6,
+    body: { idle_minutes: 5, user: { id: 'user-1' } },
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: UsersService, useValue: usersService },
+        { provide: AuditService, useValue: audit },
       ],
-    }).compile();
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AuthController);
   });
 
   describe('login', () => {
-    it('devolve o token quando as credenciais conferem', async () => {
-      const user = { id: 'user-1', email: 'ana@b.com' };
-      authService.validateUser.mockResolvedValue(user);
-      authService.login.mockResolvedValue({ access_token: 'token' });
+    const user = { id: 'user-1', name: 'Ana', email: 'ana@b.com' };
 
-      await expect(
-        controller.login({ email: 'ana@b.com', password: 'segredo123' }),
-      ).resolves.toEqual({
-        access_token: 'token',
-      });
-      expect(authService.validateUser).toHaveBeenCalledWith(
-        'ana@b.com',
-        'segredo123',
+    it('põe o token em cookie HttpOnly e não o devolve no corpo', async () => {
+      authService.validateUser.mockResolvedValue(user);
+      authService.login.mockReturnValue(session);
+
+      const body = await controller.login(
+        { email: 'ana@b.com', password: 'segredo123' },
+        req,
+        response,
       );
-      expect(authService.login).toHaveBeenCalledWith(user);
+
+      expect(body).toEqual(session.body);
+      expect(JSON.stringify(body)).not.toContain('token-secreto');
+      expect(res.cookie).toHaveBeenCalledWith(
+        'mm_session',
+        'token-secreto',
+        expect.objectContaining({
+          httpOnly: true,
+          sameSite: 'strict',
+          maxAge: 6 * 60_000,
+        }),
+      );
     });
 
-    it('responde 401 quando as credenciais são inválidas', async () => {
+    it('registra o login com usuário e IP', async () => {
+      authService.validateUser.mockResolvedValue(user);
+      authService.login.mockReturnValue(session);
+
+      await controller.login(
+        { email: 'ana@b.com', password: 'segredo123' },
+        req,
+        response,
+      );
+
+      expect(audit.record).toHaveBeenCalledWith({
+        action: 'login',
+        area: 'auth',
+        user,
+        ip: '10.0.0.7',
+      });
+    });
+
+    it('responde 401, não cria cookie e registra a tentativa que falhou', async () => {
       authService.validateUser.mockResolvedValue(null);
 
       await expect(
-        controller.login({ email: 'ana@b.com', password: 'errada' }),
+        controller.login(
+          { email: 'ana@b.com', password: 'errada' },
+          req,
+          response,
+        ),
       ).rejects.toThrow(UnauthorizedException);
-      expect(authService.login).not.toHaveBeenCalled();
+      expect(res.cookie).not.toHaveBeenCalled();
+      expect(audit.record).toHaveBeenCalledWith({
+        action: 'login_failed',
+        area: 'auth',
+        user: { email: 'ana@b.com' },
+        ip: '10.0.0.7',
+      });
     });
   });
 
-  describe('register', () => {
-    it('cria o usuário e devolve só o id', async () => {
-      usersService.create.mockResolvedValue({
-        id: 'user-2',
-        password_hash: 'hash',
-      });
+  it('refresh renova o cookie de quem está logado', () => {
+    authService.refresh.mockReturnValue(session);
 
-      const result = await controller.register({
-        name: 'Bia',
-        email: 'bia@b.com',
-        password: 'segredo123',
-      });
+    expect(controller.refresh(current, response)).toEqual(session.body);
+    expect(authService.refresh).toHaveBeenCalledWith(current);
+    expect(res.cookie).toHaveBeenCalledWith(
+      'mm_session',
+      'token-secreto',
+      expect.objectContaining({ httpOnly: true }),
+    );
+  });
 
-      expect(usersService.create).toHaveBeenCalledWith(
-        'Bia',
-        'bia@b.com',
-        'segredo123',
+  describe('logout', () => {
+    it('apaga o cookie e registra a saída', async () => {
+      await controller.logout(current, req, response);
+
+      expect(res.clearCookie).toHaveBeenCalledWith(
+        'mm_session',
+        expect.objectContaining({ httpOnly: true }),
       );
-      expect(result).toEqual({
-        message: 'Usuário criado com sucesso',
-        userId: 'user-2',
-      });
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'logout', area: 'auth' }),
+      );
     });
+
+    it('apaga o cookie mesmo com a sessão já vencida', async () => {
+      await controller.logout(undefined, req, response);
+
+      expect(res.clearCookie).toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+  });
+
+  it('me devolve os dados de quem está logado', () => {
+    expect(controller.me(current)).toEqual({
+      id: 'user-1',
+      name: 'Ana',
+      email: 'ana@b.com',
+      permissions: ['news'],
+    });
+  });
+
+  it('changePassword troca a senha de quem está logado', async () => {
+    await controller.changePassword(current, {
+      current_password: 'atual1234',
+      new_password: 'novasenha1',
+    });
+
+    expect(usersService.changeOwnPassword).toHaveBeenCalledWith(
+      'user-1',
+      'atual1234',
+      'novasenha1',
+    );
   });
 });

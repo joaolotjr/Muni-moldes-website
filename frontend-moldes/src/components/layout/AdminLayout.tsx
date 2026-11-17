@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Link, Navigate, Outlet } from 'react-router-dom';
 import { ExternalLink, Menu } from 'lucide-react';
-import { getUserName } from '../../services/api';
+import { useIdleLogout } from '../../hooks/useIdleLogout';
+import { useSessionUser } from '../../services/session';
 import { AdminSidebar } from './AdminSidebar';
 
-function initials(name: string | null) {
+function initials(name: string | null | undefined) {
   if (!name) return 'AD';
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : parts[0]?.[1] ?? '')).toUpperCase();
@@ -12,13 +13,14 @@ function initials(name: string | null) {
 
 export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const token = localStorage.getItem('token');
+  const user = useSessionUser();
+  useIdleLogout();
 
-  if (!token) {
+  if (!user) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  const userName = getUserName();
+  const userName = user.name;
 
   return (
     <div className="flex h-dvh overflow-hidden bg-surface-low font-sans text-ink antialiased selection:bg-primary-soft selection:text-primary-dark">
@@ -65,12 +67,14 @@ export function AdminLayout() {
               <ExternalLink className="h-4 w-4" />
               Ver site
             </a>
-            <div
-              title={userName ?? 'Administrador'}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-soft text-[13px] font-semibold text-secondary-dark shadow-sm"
+            <Link
+              to="/admin/minha-conta"
+              title={`${userName} · Minha conta`}
+              aria-label="Minha conta"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-soft text-[13px] font-semibold text-secondary-dark shadow-sm transition hover:brightness-95"
             >
               {initials(userName)}
-            </div>
+            </Link>
           </div>
         </header>
 

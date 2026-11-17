@@ -6,6 +6,7 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { StorageService } from './storage.service';
 
@@ -13,6 +14,8 @@ import { StorageService } from './storage.service';
 const KEY_PATTERN = /^[a-zA-Z0-9-]+\.[a-zA-Z0-9]+$/;
 
 /** Entrega as fotos em /uploads/<arquivo>, buscando no armazenamento configurado. */
+// Fotos não contam no limite de requisições: uma página do catálogo carrega dezenas.
+@SkipThrottle()
 @Controller('uploads')
 export class UploadsController {
   constructor(private readonly storage: StorageService) {}

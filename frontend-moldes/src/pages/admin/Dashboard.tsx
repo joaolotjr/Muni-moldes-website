@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderTree, Megaphone, Package, PlusCircle, Settings, SquarePen } from 'lucide-react';
 import { api } from '../../services/api';
+import { useSessionUser } from '../../services/session';
+import type { Permission } from '../../config/permissions';
 import type { Collection, NewsPost, Product } from '../../types';
 
 export function Dashboard() {
@@ -10,12 +12,16 @@ export function Dashboard() {
   const [news, setNews] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const user = useSessionUser();
+  const can = (permission: Permission) => user?.permissions.includes(permission) ?? false;
+  const canNews = can('news');
 
   useEffect(() => {
     Promise.all([
       api.get<Product[]>('/products'),
       api.get<Collection[]>('/collections'),
-      api.get<NewsPost[]>('/news/admin'),
+      // Sem a permissão de notícias, a lista pública (só publicadas) basta para o resumo.
+      api.get<NewsPost[]>(canNews ? '/news/admin' : '/news'),
     ])
       .then(([productsRes, collectionsRes, newsRes]) => {
         setProducts(productsRes.data);
@@ -27,9 +33,9 @@ export function Dashboard() {
         setFailed(true);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [canNews]);
 
-  const publishedNews = news.filter((post) => post.status === 'published').length;
+  const publishedNews = canNews ? news.filter((post) => post.status === 'published').length : news.length;
   const stats = [
     { label: 'Total de produtos', value: products.length, icon: Package, tone: 'bg-primary-soft/20 text-primary', to: '/admin/produtos' },
     { label: 'Categorias', value: collections.length, icon: FolderTree, tone: 'bg-secondary-soft/40 text-secondary', to: '/admin/colecoes' },
@@ -39,12 +45,13 @@ export function Dashboard() {
   // A API devolve os produtos do mais antigo para o mais novo.
   const latest = [...products].reverse().slice(0, 5);
 
+  // Só os atalhos das áreas liberadas para quem está logado.
   const actions = [
-    { label: 'Novo produto', icon: PlusCircle, tone: 'text-primary', to: '/admin/produtos/novo' },
-    { label: 'Nova notícia', icon: SquarePen, tone: 'text-secondary', to: '/admin/noticias/nova' },
-    { label: 'Gerenciar categorias', icon: FolderTree, tone: 'text-ink-soft', to: '/admin/colecoes' },
-    { label: 'Configurações do site', icon: Settings, tone: 'text-ink', to: '/admin/configuracoes' },
-  ];
+    { label: 'Novo produto', icon: PlusCircle, tone: 'text-primary', to: '/admin/produtos/novo', permission: 'products' as const },
+    { label: 'Nova notícia', icon: SquarePen, tone: 'text-secondary', to: '/admin/noticias/nova', permission: 'news' as const },
+    { label: 'Gerenciar categorias', icon: FolderTree, tone: 'text-ink-soft', to: '/admin/colecoes', permission: 'collections' as const },
+    { label: 'Configurações do site', icon: Settings, tone: 'text-ink', to: '/admin/configuracoes', permission: 'settings' as const },
+  ].filter((action) => can(action.permission));
   const actionClass =
     'group flex min-h-24 flex-col items-center justify-center gap-2 rounded-lg border border-line/20 bg-surface-mid p-4 text-center transition-colors hover:bg-line-soft';
 
@@ -110,6 +117,11 @@ export function Dashboard() {
             <h2 className="heading-3">Ações rápidas</h2>
           </div>
           <div className="grid grid-cols-2 content-start gap-4 p-5 sm:p-6">
+            {actions.length === 0 && (
+              <p className="col-span-2 text-ink-soft">
+                Seu usuário ainda não tem áreas liberadas. Peça acesso a quem administra os usuários.
+              </p>
+            )}
             {actions.map((action) => (
               <Link key={action.label} to={action.to} className={actionClass}>
                 <action.icon className={`h-6 w-6 transition-transform group-hover:scale-110 ${action.tone}`} />

@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, DeepPartial } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
 import { StorageService } from '../storage/storage.service';
+import { assertValidSchedule, saveWithClearErrors } from '../common/save-rules';
+import { CreateProductDto, UpdateProductDto } from './dto/save-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -15,9 +17,21 @@ export class ProductsService {
     private storage: StorageService,
   ) {}
 
-  async create(productData: Partial<Product>): Promise<Product> {
-    const product = this.productsRepository.create(productData);
-    return this.productsRepository.save(product);
+  async create(data: CreateProductDto): Promise<Product> {
+    assertValidSchedule(data);
+    return saveWithClearErrors(() =>
+      this.productsRepository.save(
+        this.productsRepository.create(data as DeepPartial<Product>),
+      ),
+    );
+  }
+
+  async findById(id: string): Promise<Product> {
+    const product = await this.productsRepository.findOne({ where: { id } });
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado.');
+    }
+    return product;
   }
 
   async findAll(collectionSlug?: string, isPublic: boolean = false): Promise<Product[]> {
@@ -61,9 +75,13 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, productData: Partial<Product>): Promise<Product> {
-    await this.productsRepository.update(id, productData);
-    return this.productsRepository.findOneOrFail({ where: { id } });
+  async update(id: string, data: UpdateProductDto): Promise<Product> {
+    const current = await this.findById(id);
+    assertValidSchedule(data, current);
+    await saveWithClearErrors(() =>
+      this.productsRepository.update(id, data as DeepPartial<Product>),
+    );
+    return this.findById(id);
   }
 
   async remove(id: string): Promise<void> {

@@ -9,11 +9,10 @@ import {
   Put,
   Request,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Auth } from '../auth/auth.decorator';
 import { imageUploadOptions } from '../storage/image-upload';
 import { StorageService } from '../storage/storage.service';
 import { UsersService } from '../users/users.service';
@@ -37,13 +36,13 @@ export class NewsController {
 
   // ---- Painel (com login). As rotas "admin" vêm antes de ":slug" para não serem confundidas.
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Get('admin')
   findAllForAdmin() {
     return this.newsService.findAllForAdmin();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Get('admin/:id')
   findOneForAdmin(@Param('id', ParseUUIDPipe) id: string) {
     return this.newsService.findOneForAdmin(id);
@@ -54,7 +53,7 @@ export class NewsController {
     return this.newsService.findPublishedBySlug(slug);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Post()
   async create(
     @Body() dto: SaveNewsDto,
@@ -64,19 +63,19 @@ export class NewsController {
     return this.newsService.create(dto, author?.name ?? null);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Put(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SaveNewsDto) {
     return this.newsService.update(id, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.newsService.remove(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadCover(
@@ -89,7 +88,7 @@ export class NewsController {
     return this.newsService.setCover(id, imageUrl);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('news')
   @Delete(':id/cover')
   removeCover(@Param('id', ParseUUIDPipe) id: string) {
     return this.newsService.removeCover(id);

@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Auth, CurrentUser, OptionalAuth } from '../auth/auth.decorator';
+import type { AuthUser } from '../auth/permissions';
+import { isVisibleNow } from '../visibility';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Product } from './entities/product.entity';
+import { CreateProductDto, UpdateProductDto } from './dto/save-product.dto';
 import { StorageService } from '../storage/storage.service';
 import { imageUploadOptions } from '../storage/image-upload';
 
@@ -13,50 +15,64 @@ export class ProductsController {
     private readonly storage: StorageService,
   ) {}
 
+  // Sem login, só o que está visível no site. Itens inativos ou agendados
+  // aparecem apenas para quem está logado no painel.
+  @OptionalAuth()
   @Get()
-  findAll(@Query('collection') collectionSlug?: string, @Query('public') isPublic?: string) {
-    return this.productsService.findAll(collectionSlug, isPublic === 'true');
+  findAll(
+    @CurrentUser() user: AuthUser | undefined,
+    @Query('collection') collectionSlug?: string,
+    @Query('public') isPublic?: string,
+  ) {
+    return this.productsService.findAll(collectionSlug, !user || isPublic === 'true');
   }
 
+  @OptionalAuth()
   @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.productsService.findOne(slug);
+  async findOne(@CurrentUser() user: AuthUser | undefined, @Param('slug') slug: string) {
+    const product = await this.productsService.findOne(slug);
+    if (!user && !isVisibleNow(product)) {
+      throw new NotFoundException(`Product with slug ${slug} not found`);
+    }
+    return product;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Post()
-  create(@Body() body: Partial<Product>) {
+  create(@Body() body: CreateProductDto) {
     return this.productsService.create(body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: Partial<Product>) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateProductDto) {
     return this.productsService.update(id, body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body('isCover') isCover?: string
   ) {
+    // Confere o produto antes de guardar o arquivo, para não sobrar foto órfã.
+    await this.productsService.findById(id);
     // A imagem vai para o armazenamento (S3 ou pasta local) e é servida em /uploads/<nome>.
     const imageUrl = await this.storage.saveImage(file);
     return this.productsService.addImage(id, imageUrl, isCover === 'true');
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth('products')
   @Delete(':id/images/:imageId')
-  removeImage(@Param('imageId') imageId: string) {
+  removeImage(@Param('imageId', ParseUUIDPipe) imageId: string) {
     return this.productsService.removeImage(imageId);
   }
 }
