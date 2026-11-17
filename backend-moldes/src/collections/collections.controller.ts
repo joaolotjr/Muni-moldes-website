@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { Auth, CurrentUser, OptionalAuth } from '../auth/auth.decorator';
 import type { AuthUser } from '../auth/permissions';
 import { isVisibleNow } from '../visibility';
 
-import { Collection } from './entities/collection.entity';
+import { CreateCollectionDto, UpdateCollectionDto } from './dto/save-collection.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -19,7 +19,7 @@ export class CollectionsController {
 
   @OptionalAuth()
   @Get(':id')
-  async findOne(@CurrentUser() user: AuthUser | undefined, @Param('id') id: string) {
+  async findOne(@CurrentUser() user: AuthUser | undefined, @Param('id', ParseUUIDPipe) id: string) {
     const collection = await this.collectionsService.findOne(id);
     if (!user && !isVisibleNow(collection)) {
       throw new NotFoundException(`Collection #${id} not found`);
@@ -29,19 +29,19 @@ export class CollectionsController {
 
   @Auth('collections')
   @Post()
-  create(@Body() body: Partial<Collection>) {
+  create(@Body() body: CreateCollectionDto) {
     return this.collectionsService.create(body);
   }
 
   @Auth('collections')
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: Partial<Collection>) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateCollectionDto) {
     return this.collectionsService.update(id, body);
   }
 
   @Auth('collections')
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.collectionsService.remove(id);
   }
 }

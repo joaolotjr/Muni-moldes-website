@@ -11,6 +11,7 @@ describe('ProductsController', () => {
   const service = {
     findAll: jest.fn(),
     findOne: jest.fn(),
+    findById: jest.fn(),
     addImage: jest.fn(),
     removeImage: jest.fn(),
   };
@@ -112,6 +113,15 @@ describe('ProductsController', () => {
         '/uploads/abc.png',
         true,
       );
+    });
+
+    it('responde 404 sem guardar o arquivo quando o produto não existe', async () => {
+      service.findById.mockRejectedValueOnce(new NotFoundException());
+
+      await expect(controller.uploadImage('prod-x', file)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(storage.saveImage).not.toHaveBeenCalled();
     });
 
     it('trata a foto como não sendo capa por padrão', async () => {

@@ -1,4 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { StorageService } from '../storage/storage.service';
@@ -45,6 +49,80 @@ describe('ProductsService', () => {
     }).compile();
 
     service = module.get(ProductsService);
+  });
+
+  describe('create', () => {
+    it('salva o produto', async () => {
+      await expect(
+        service.create({ name: 'Ovo liso', slug: 'ovo-liso' }),
+      ).resolves.toEqual({ id: 'prod-1', name: 'Ovo liso', slug: 'ovo-liso' });
+    });
+
+    it('recusa período que termina antes de começar', async () => {
+      await expect(
+        service.create({
+          name: 'Ovo',
+          slug: 'ovo',
+          active_from: '2026-12-10T00:00:00Z',
+          active_until: '2026-12-01T00:00:00Z',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(products.save).not.toHaveBeenCalled();
+    });
+
+    it('endereço repetido vira 409 com mensagem clara', async () => {
+      products.save.mockRejectedValueOnce({ driverError: { code: '23505' } });
+
+      await expect(
+        service.create({ name: 'Ovo', slug: 'ovo' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('categoria que não existe vira 400', async () => {
+      products.save.mockRejectedValueOnce({ code: '23503' });
+
+      await expect(
+        service.create({
+          name: 'Ovo',
+          slug: 'ovo',
+          collection_id: '0b67499e-8c2c-4b37-a329-4f31329b8e2a',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('update', () => {
+    it('grava só o que foi enviado e devolve o produto atualizado', async () => {
+      products.findOne.mockResolvedValue({ id: 'prod-1', name: 'Ovo liso' });
+
+      await expect(
+        service.update('prod-1', { name: 'Ovo liso' }),
+      ).resolves.toEqual({ id: 'prod-1', name: 'Ovo liso' });
+      expect(products.update).toHaveBeenCalledWith('prod-1', {
+        name: 'Ovo liso',
+      });
+    });
+
+    it('responde 404 para produto inexistente', async () => {
+      products.findOne.mockResolvedValue(null);
+
+      await expect(service.update('prod-x', { name: 'x' })).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(products.update).not.toHaveBeenCalled();
+    });
+
+    it('compara a nova data de fim com o início já gravado', async () => {
+      products.findOne.mockResolvedValue({
+        id: 'prod-1',
+        active_from: new Date('2026-12-10T00:00:00Z'),
+      });
+
+      await expect(
+        service.update('prod-1', { active_until: '2026-12-01T00:00:00Z' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(products.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {

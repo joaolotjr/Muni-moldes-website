@@ -21,7 +21,13 @@ async function bootstrap() {
   app.enableCors(corsOptions());
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    // whitelist + forbidNonWhitelisted: campo que não está no DTO é recusado.
+    // transform: aplica os ajustes dos DTOs (tirar espaços, vazio vira null).
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
   await app.listen(process.env.PORT ?? 3333);
 }

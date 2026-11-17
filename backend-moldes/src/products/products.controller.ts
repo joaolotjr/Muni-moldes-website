@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { Auth, CurrentUser, OptionalAuth } from '../auth/auth.decorator';
 import type { AuthUser } from '../auth/permissions';
 import { isVisibleNow } from '../visibility';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Product } from './entities/product.entity';
+import { CreateProductDto, UpdateProductDto } from './dto/save-product.dto';
 import { StorageService } from '../storage/storage.service';
 import { imageUploadOptions } from '../storage/image-upload';
 
@@ -39,19 +39,19 @@ export class ProductsController {
 
   @Auth('products')
   @Post()
-  create(@Body() body: Partial<Product>) {
+  create(@Body() body: CreateProductDto) {
     return this.productsService.create(body);
   }
 
   @Auth('products')
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: Partial<Product>) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateProductDto) {
     return this.productsService.update(id, body);
   }
 
   @Auth('products')
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }
 
@@ -59,10 +59,12 @@ export class ProductsController {
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('file', imageUploadOptions))
   async uploadImage(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body('isCover') isCover?: string
   ) {
+    // Confere o produto antes de guardar o arquivo, para não sobrar foto órfã.
+    await this.productsService.findById(id);
     // A imagem vai para o armazenamento (S3 ou pasta local) e é servida em /uploads/<nome>.
     const imageUrl = await this.storage.saveImage(file);
     return this.productsService.addImage(id, imageUrl, isCover === 'true');
@@ -70,7 +72,7 @@ export class ProductsController {
 
   @Auth('products')
   @Delete(':id/images/:imageId')
-  removeImage(@Param('imageId') imageId: string) {
+  removeImage(@Param('imageId', ParseUUIDPipe) imageId: string) {
     return this.productsService.removeImage(imageId);
   }
 }
