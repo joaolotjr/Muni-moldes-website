@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseInterceptors, UploadedFile, NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { Auth } from '../auth/auth.decorator';
+import { Auth, CurrentUser, OptionalAuth } from '../auth/auth.decorator';
+import type { AuthUser } from '../auth/permissions';
+import { isVisibleNow } from '../visibility';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Product } from './entities/product.entity';
 import { StorageService } from '../storage/storage.service';
@@ -13,14 +15,26 @@ export class ProductsController {
     private readonly storage: StorageService,
   ) {}
 
+  // Sem login, só o que está visível no site. Itens inativos ou agendados
+  // aparecem apenas para quem está logado no painel.
+  @OptionalAuth()
   @Get()
-  findAll(@Query('collection') collectionSlug?: string, @Query('public') isPublic?: string) {
-    return this.productsService.findAll(collectionSlug, isPublic === 'true');
+  findAll(
+    @CurrentUser() user: AuthUser | undefined,
+    @Query('collection') collectionSlug?: string,
+    @Query('public') isPublic?: string,
+  ) {
+    return this.productsService.findAll(collectionSlug, !user || isPublic === 'true');
   }
 
+  @OptionalAuth()
   @Get(':slug')
-  findOne(@Param('slug') slug: string) {
-    return this.productsService.findOne(slug);
+  async findOne(@CurrentUser() user: AuthUser | undefined, @Param('slug') slug: string) {
+    const product = await this.productsService.findOne(slug);
+    if (!user && !isVisibleNow(product)) {
+      throw new NotFoundException(`Product with slug ${slug} not found`);
+    }
+    return product;
   }
 
   @Auth('products')

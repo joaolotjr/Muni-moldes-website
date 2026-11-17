@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import type { Permission } from '../config/permissions';
 
-// Sessão do painel, guardada no navegador. A API confere tudo de novo a cada
-// requisição; o que fica aqui serve só para montar a tela.
+// Dados de quem está logado, guardados no navegador só para montar a tela.
+// O token de acesso NÃO fica aqui: ele vai em um cookie HttpOnly, que o
+// JavaScript não consegue ler. A API confere tudo de novo a cada requisição.
 export interface SessionUser {
   id: string;
   name: string;
@@ -11,16 +12,14 @@ export interface SessionUser {
 }
 
 export interface SessionResponse {
-  access_token: string;
   idle_minutes: number;
   user: SessionUser;
 }
 
 const KEYS = {
-  token: 'token',
   user: 'session_user',
   idleMinutes: 'session_idle_minutes',
-  tokenAt: 'session_token_at',
+  renewedAt: 'session_renewed_at',
   lastActivity: 'session_last_activity',
 } as const;
 
@@ -31,10 +30,6 @@ let cachedUser: SessionUser | null = null;
 
 function notify() {
   listeners.forEach((listener) => listener());
-}
-
-export function getToken() {
-  return localStorage.getItem(KEYS.token);
 }
 
 export function getSessionUser(): SessionUser | null {
@@ -55,8 +50,9 @@ export function getIdleMs() {
   return (minutes > 0 ? minutes : DEFAULT_IDLE_MINUTES) * 60_000;
 }
 
-export function getTokenAge() {
-  return Date.now() - Number(localStorage.getItem(KEYS.tokenAt) ?? 0);
+/** Há quanto tempo a sessão foi aberta ou renovada pela última vez. */
+export function getSessionAge() {
+  return Date.now() - Number(localStorage.getItem(KEYS.renewedAt) ?? 0);
 }
 
 export function getLastActivity() {
@@ -69,17 +65,17 @@ export function touchActivity() {
 
 /** Guarda o resultado do login ou da renovação. */
 export function saveSession(session: SessionResponse, { activity = false } = {}) {
-  localStorage.setItem(KEYS.token, session.access_token);
   localStorage.setItem(KEYS.user, JSON.stringify(session.user));
   localStorage.setItem(KEYS.idleMinutes, String(session.idle_minutes));
-  localStorage.setItem(KEYS.tokenAt, String(Date.now()));
+  localStorage.setItem(KEYS.renewedAt, String(Date.now()));
   if (activity) touchActivity();
   notify();
 }
 
 export function clearSession() {
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
-  localStorage.removeItem('user_name'); // chave de versões anteriores
+  // Chaves de versões anteriores, quando o token ainda ficava no navegador.
+  ['token', 'user_name', 'session_token_at'].forEach((key) => localStorage.removeItem(key));
   notify();
 }
 

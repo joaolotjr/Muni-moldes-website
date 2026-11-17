@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { FolderTree, LayoutDashboard, LogOut, Newspaper, Package, Settings, Users, type LucideIcon } from 'lucide-react';
+import { FolderTree, History, LayoutDashboard, LogOut, Newspaper, Package, Settings, Users, type LucideIcon } from 'lucide-react';
 import { logout } from '../../services/api';
 import { useSessionUser } from '../../services/session';
 import type { Permission } from '../../config/permissions';
@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { name: 'Notícias', path: '/admin/noticias', icon: Newspaper, exact: false, permission: 'news' },
   { name: 'Configurações', path: '/admin/configuracoes', icon: Settings, exact: false, permission: 'settings' },
   { name: 'Usuários', path: '/admin/usuarios', icon: Users, exact: false, permission: 'users' },
+  { name: 'Atividades', path: '/admin/atividades', icon: History, exact: false, permission: 'users' },
 ];
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {

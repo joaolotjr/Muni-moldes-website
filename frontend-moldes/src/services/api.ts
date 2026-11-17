@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { clearSession, getToken } from './session';
+import { clearSession } from './session';
 
 // Sem VITE_API_URL, usa o mesmo endereço pelo qual o site foi aberto (localhost, IP da rede etc.).
 export const API_URL: string =
@@ -7,15 +7,8 @@ export const API_URL: string =
 
 export const api = axios.create({
   baseURL: API_URL,
-});
-
-// Add a request interceptor to attach the JWT token
-api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  // A sessão do painel vai em cookie HttpOnly; sem isto o navegador não o envia.
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
@@ -34,6 +27,11 @@ export type LogoutReason = 'inatividade' | 'expirada';
 
 /** Encerra a sessão e volta para o login. O motivo vira um aviso na tela. */
 export const logout = (reason?: LogoutReason) => {
+  // Pede à API para apagar o cookie. keepalive deixa o pedido terminar mesmo
+  // com a página mudando; se falhar, o cookie vence sozinho em poucos minutos.
+  void fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include', keepalive: true }).catch(
+    () => undefined,
+  );
   clearSession();
   if (window.location.pathname === '/admin/login') return;
   window.location.href = reason ? `/admin/login?motivo=${reason}` : '/admin/login';

@@ -3,8 +3,8 @@ import { api, logout } from '../services/api';
 import {
   getIdleMs,
   getLastActivity,
-  getToken,
-  getTokenAge,
+  getSessionAge,
+  getSessionUser,
   saveSession,
   touchActivity,
   type SessionResponse,
@@ -19,8 +19,9 @@ const REFRESH_AFTER_MS = 60_000;
  * Encerra a sessão depois do tempo de inatividade (5 minutos por padrão).
  *
  * Atividade é mexer o mouse, tocar, rolar ou digitar em qualquer aba do painel.
- * Enquanto houver atividade, o token é renovado em segundo plano; sem
- * atividade ele vence sozinho no servidor, um minuto depois desse prazo.
+ * Enquanto houver atividade, a sessão (um cookie HttpOnly) é renovada em
+ * segundo plano; sem atividade ela vence sozinha no servidor, um minuto depois
+ * desse prazo.
  */
 export function useIdleLogout() {
   useEffect(() => {
@@ -47,9 +48,9 @@ export function useIdleLogout() {
     };
 
     const refreshIfNeeded = async () => {
-      if (refreshing || getTokenAge() < REFRESH_AFTER_MS) return;
-      // Só renova se a pessoa usou o painel depois que o token atual foi emitido.
-      if (Date.now() - getLastActivity() > getTokenAge()) return;
+      if (refreshing || getSessionAge() < REFRESH_AFTER_MS) return;
+      // Só renova se a pessoa usou o painel depois da última renovação.
+      if (Date.now() - getLastActivity() > getSessionAge()) return;
       refreshing = true;
       try {
         const { data } = await api.post<SessionResponse>('/auth/refresh');
@@ -62,7 +63,7 @@ export function useIdleLogout() {
     };
 
     const check = () => {
-      if (!getToken()) return;
+      if (!getSessionUser()) return;
       if (expired()) {
         logout('inatividade');
         return;

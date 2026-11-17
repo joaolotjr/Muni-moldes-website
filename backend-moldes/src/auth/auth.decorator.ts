@@ -5,7 +5,7 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtAuthGuard, OptionalJwtAuthGuard } from './jwt-auth.guard';
 import { AuthUser, Permission } from './permissions';
 import { PERMISSION_KEY, PermissionsGuard } from './permissions.guard';
 
@@ -17,7 +17,12 @@ export function Auth(permission?: Permission) {
   );
 }
 
-// Usuário autenticado da requisição.
+// Rota aberta que reconhece quem está logado: use com @CurrentUser(), que pode vir vazio.
+export function OptionalAuth() {
+  return applyDecorators(UseGuards(OptionalJwtAuthGuard));
+}
+
+// Usuário autenticado da requisição (vazio em rota com @OptionalAuth e sem login).
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthUser =>
     context.switchToHttp().getRequest<{ user: AuthUser }>().user,

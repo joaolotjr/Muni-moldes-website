@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuthUser } from '../auth/permissions';
 import { StorageService } from '../storage/storage.service';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
@@ -29,14 +31,70 @@ describe('ProductsController', () => {
     controller = module.get(ProductsController);
   });
 
-  it('findAll repassa a coleção e só aplica o filtro público com ?public=true', () => {
-    void controller.findAll('pascoa', 'true');
-    void controller.findAll(undefined, undefined);
+  const admin: AuthUser = {
+    userId: 'user-1',
+    name: 'Ana',
+    email: 'ana@b.com',
+    permissions: [],
+  };
 
-    expect(service.findAll.mock.calls).toEqual([
-      ['pascoa', true],
-      [undefined, false],
-    ]);
+  describe('findAll', () => {
+    it('sem login, sempre aplica o filtro público', () => {
+      void controller.findAll(undefined, 'pascoa', undefined);
+      void controller.findAll(undefined, undefined, 'false');
+
+      expect(service.findAll.mock.calls).toEqual([
+        ['pascoa', true],
+        [undefined, true],
+      ]);
+    });
+
+    it('com login, mostra tudo, a menos que peça ?public=true', () => {
+      void controller.findAll(admin, undefined, undefined);
+      void controller.findAll(admin, undefined, 'true');
+
+      expect(service.findAll.mock.calls).toEqual([
+        [undefined, false],
+        [undefined, true],
+      ]);
+    });
+  });
+
+  describe('findOne', () => {
+    const hidden = { slug: 'oculto', is_active: false };
+
+    it('devolve o produto visível para qualquer pessoa', async () => {
+      const product = { slug: 'ovo', is_active: true };
+      service.findOne.mockResolvedValue(product);
+
+      await expect(controller.findOne(undefined, 'ovo')).resolves.toBe(product);
+    });
+
+    it('esconde o produto inativo de quem não está logado', async () => {
+      service.findOne.mockResolvedValue(hidden);
+
+      await expect(controller.findOne(undefined, 'oculto')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('esconde o produto agendado para o futuro', async () => {
+      service.findOne.mockResolvedValue({
+        slug: 'futuro',
+        is_active: true,
+        active_from: new Date(Date.now() + 60_000),
+      });
+
+      await expect(controller.findOne(undefined, 'futuro')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('mostra o produto inativo para quem está logado', async () => {
+      service.findOne.mockResolvedValue(hidden);
+
+      await expect(controller.findOne(admin, 'oculto')).resolves.toBe(hidden);
+    });
   });
 
   describe('uploadImage', () => {

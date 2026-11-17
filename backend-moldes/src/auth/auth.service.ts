@@ -45,14 +45,20 @@ export class AuthService {
   }
 
   private session(user: SessionUser) {
+    const idleMinutes = sessionIdleMinutes(this.configService);
     return {
-      access_token: this.jwtService.sign({ sub: user.id }),
-      idle_minutes: sessionIdleMinutes(this.configService),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        permissions: user.permissions,
+      // Vai para o cookie de sessão; nunca é devolvido no corpo da resposta.
+      token: this.jwtService.sign({ sub: user.id }),
+      // O token dura um minuto a mais que o prazo de inatividade (ver auth.module).
+      tokenMinutes: idleMinutes + 1,
+      body: {
+        idle_minutes: idleMinutes,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          permissions: user.permissions,
+        },
       },
     };
   }

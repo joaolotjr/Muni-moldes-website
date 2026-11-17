@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, Outlet } from 'react-router-dom';
 import { ExternalLink, Menu } from 'lucide-react';
 import { useIdleLogout } from '../../hooks/useIdleLogout';
-import { getToken, useSessionUser } from '../../services/session';
+import { useSessionUser } from '../../services/session';
 import { AdminSidebar } from './AdminSidebar';
 
 function initials(name: string | null | undefined) {
@@ -16,7 +16,7 @@ export function AdminLayout() {
   const user = useSessionUser();
   useIdleLogout();
 
-  if (!getToken() || !user) {
+  if (!user) {
     return <Navigate to="/admin/login" replace />;
   }
 

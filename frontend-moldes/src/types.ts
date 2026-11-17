@@ -57,3 +57,14 @@ export interface AdminUser {
   is_active: boolean;
   created_at: string;
 }
+
+export interface AuditLog {
+  id: string;
+  created_at: string;
+  user_name: string | null;
+  user_email: string | null;
+  action: string;
+  area: string;
+  target: string | null;
+  ip: string | null;
+}

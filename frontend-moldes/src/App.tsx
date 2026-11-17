@@ -23,6 +23,7 @@ import { NewsForm } from './pages/admin/NewsForm';
 import { UsersList } from './pages/admin/UsersList';
 import { UserForm } from './pages/admin/UserForm';
 import { Account } from './pages/admin/Account';
+import { ActivityLog } from './pages/admin/ActivityLog';
 import { RequirePermission } from './components/admin/RequirePermission';
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="usuarios" element={<RequirePermission permission="users"><UsersList /></RequirePermission>} />
               <Route path="usuarios/novo" element={<RequirePermission permission="users"><UserForm /></RequirePermission>} />
               <Route path="usuarios/:id" element={<RequirePermission permission="users"><UserForm /></RequirePermission>} />
+              <Route path="atividades" element={<RequirePermission permission="users"><ActivityLog /></RequirePermission>} />
               <Route path="minha-conta" element={<Account />} />
             </Route>
 

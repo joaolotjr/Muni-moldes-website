@@ -79,7 +79,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('assina o token só com o id e devolve os dados públicos e o tempo de inatividade', () => {
+    it('assina o token só com o id; o token não vai no corpo da resposta', () => {
       const result = service.login({
         id: 'user-1',
         name: 'Ana',
@@ -89,15 +89,19 @@ describe('AuthService', () => {
 
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1' });
       expect(result).toEqual({
-        access_token: 'token-assinado',
-        idle_minutes: 5,
-        user: {
-          id: 'user-1',
-          name: 'Ana',
-          email: 'ana@b.com',
-          permissions: ['news'],
+        token: 'token-assinado',
+        tokenMinutes: 6,
+        body: {
+          idle_minutes: 5,
+          user: {
+            id: 'user-1',
+            name: 'Ana',
+            email: 'ana@b.com',
+            permissions: ['news'],
+          },
         },
       });
+      expect(JSON.stringify(result.body)).not.toContain('token-assinado');
     });
 
     it('respeita SESSION_IDLE_MINUTES', () => {
@@ -110,7 +114,8 @@ describe('AuthService', () => {
         permissions: [],
       });
 
-      expect(result.idle_minutes).toBe(15);
+      expect(result.body.idle_minutes).toBe(15);
+      expect(result.tokenMinutes).toBe(16);
     });
   });
 
@@ -124,7 +129,7 @@ describe('AuthService', () => {
       });
 
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1' });
-      expect(result.user).toEqual({
+      expect(result.body.user).toEqual({
         id: 'user-1',
         name: 'Ana',
         email: 'ana@b.com',

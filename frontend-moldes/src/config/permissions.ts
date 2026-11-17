@@ -7,7 +7,7 @@ export const permissionOptions: { value: Permission; label: string; description:
   { value: 'collections', label: 'Categorias', description: 'Criar e organizar as linhas de produto.' },
   { value: 'news', label: 'Notícias', description: 'Escrever, publicar e excluir notícias.' },
   { value: 'settings', label: 'Configurações', description: 'Alterar contatos e textos do site.' },
-  { value: 'users', label: 'Usuários', description: 'Criar usuários e definir o que cada um pode fazer.' },
+  { value: 'users', label: 'Usuários', description: 'Criar usuários, definir o que cada um pode fazer e ver o registro de atividades.' },
 ];
 
 export const permissionLabel = (permission: Permission) =>
