@@ -103,9 +103,9 @@ export function buildSite(settings: SiteSettings) {
     /** Link de orçamento geral. */
     quoteUrl: whatsappLink(defaultQuoteMessage),
     /** Mensagem de orçamento já com o nome e o link do molde. */
-    productQuoteLink: (product: { name: string; slug: string }) =>
+    productQuoteLink: (product: { name: string; slug: string; code?: string | null }) =>
       whatsappLink(
-        `Olá! Gostaria de um orçamento para o molde: *${product.name}*.\n\nQuantidade: \n\nLink: ${window.location.origin}/molde/${product.slug}`,
+        `Olá! Gostaria de um orçamento para o molde: *${product.name}*${product.code ? ` (código ${product.code})` : ''}.\n\nQuantidade: \n\nLink: ${window.location.origin}/molde/${product.slug}`,
       ),
   };
 }

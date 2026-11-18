@@ -8,7 +8,12 @@ import type { Product } from '../../types';
 export function ProductCard({ product }: { product: Product }) {
   const site = useSite();
   const cover = product.images?.[0]?.image_url;
-  const specs = [product.dimensions, product.final_weight].filter(Boolean).join(' • ');
+  const specs = [
+    product.dimensions,
+    product.cavities ? `${product.cavities} ${product.cavities === 1 ? 'cavidade' : 'cavidades'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
 
   return (
     <article className="group flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-soft transition duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:p-4">
@@ -34,7 +39,16 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        <h3 className="mt-3 line-clamp-2 px-1 font-serif text-[15px] font-semibold leading-snug sm:mt-4 sm:text-xl">
+        {product.code && (
+          <p className="mt-3 px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-outline sm:mt-4">
+            {product.code}
+          </p>
+        )}
+        <h3
+          className={`line-clamp-2 px-1 font-serif text-[15px] font-semibold leading-snug sm:text-xl ${
+            product.code ? 'mt-1' : 'mt-3 sm:mt-4'
+          }`}
+        >
           {product.name}
         </h3>
         {specs && <p className="mt-1 px-1 text-xs text-ink-soft sm:text-sm">{specs}</p>}

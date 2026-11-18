@@ -6,6 +6,7 @@ import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { ProductCard } from '../../components/public/ProductCard';
 import type { Product } from '../../types';
+import { collectionsOf, secondaryCollectionsOf } from '../../utils/products';
 
 export function ProductDetails() {
   const { slug } = useParams();
@@ -23,13 +24,18 @@ export function ProductDetails() {
         setProduct(res.data);
         setActiveImage(res.data.images?.[0]?.image_url ?? null);
 
-        // Outros moldes da mesma linha. Se falhar, a página segue sem a seção.
-        const collectionId = res.data.collection?.id;
-        if (collectionId) {
+        // Outros moldes que dividem alguma categoria com este, primeiro os da mesma
+        // categoria principal. Se falhar, a página segue sem a seção.
+        const ids = new Set(collectionsOf(res.data).map((c) => c.id));
+        if (ids.size > 0) {
           try {
             const all = await api.get<Product[]>('/products?public=true');
+            const principalId = res.data.collection?.id;
             setRelated(
-              all.data.filter((p) => p.collection?.id === collectionId && p.id !== res.data.id).slice(0, 4),
+              all.data
+                .filter((p) => p.id !== res.data.id && collectionsOf(p).some((c) => ids.has(c.id)))
+                .sort((a, b) => Number(b.collection?.id === principalId) - Number(a.collection?.id === principalId))
+                .slice(0, 4),
             );
           } catch {
             setRelated([]);
@@ -77,10 +83,16 @@ export function ProductDetails() {
   }
 
   const specs = [
+    { label: 'Código', value: product.code },
     { label: 'Linha', value: product.collection?.name },
     { label: 'Dimensões', value: product.dimensions },
-    { label: 'Peso', value: product.final_weight },
+    { label: 'Cavidades', value: product.cavities ? String(product.cavities) : null },
+    { label: 'Peso da peça pronta', value: product.piece_weight },
+    { label: 'Material', value: product.material },
+    { label: 'Peso do molde', value: product.final_weight ? `${product.final_weight} (aprox.)` : null },
+    { label: 'Pedido mínimo', value: product.min_order ? `${product.min_order} unidades` : null },
   ].filter((spec) => spec.value);
+  const alsoIn = secondaryCollectionsOf(product);
 
   return (
     <div className="container-page flex-1 pb-14 pt-6 sm:pb-24 sm:pt-10 lg:pt-16">
@@ -160,6 +172,20 @@ export function ProductDetails() {
             </div>
           )}
 
+          {alsoIn.length > 0 && (
+            <p className="mt-6 text-sm text-ink-soft">
+              Também em:{' '}
+              {alsoIn.map((collection, index) => (
+                <span key={collection.id}>
+                  {index > 0 && ', '}
+                  <Link to={`/catalogo?colecao=${collection.slug}`} className="font-semibold text-primary hover:underline">
+                    {collection.name}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          )}
+
           <div className="mt-8 border-t border-line pt-8">
             <a
               href={site.productQuoteLink(product)}
@@ -186,7 +212,7 @@ export function ProductDetails() {
           <div className="flex items-end justify-between gap-6">
             <div>
               <h2 className="heading-2">Moldes relacionados</h2>
-              <p className="mt-2 text-ink-soft">Da mesma linha: {product.collection.name}</p>
+              <p className="mt-2 text-ink-soft">Da mesma linha e linhas relacionadas</p>
             </div>
             <Link
               to={`/catalogo?colecao=${product.collection.slug}`}

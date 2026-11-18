@@ -36,8 +36,16 @@ export async function saveWithClearErrors<T>(
       (error as { code?: string }).code ??
       (error as { driverError?: { code?: string } }).driverError?.code;
     if (code === UNIQUE_VIOLATION) {
+      // O Postgres informa a coluna no detalhe: "Key (code)=(MM-1) already exists."
+      const detail =
+        (error as { detail?: string }).detail ??
+        (error as { driverError?: { detail?: string } }).driverError?.detail ??
+        '';
+      const column = /Key \(([^)]+)\)/.exec(detail)?.[1];
       throw new ConflictException(
-        'Este endereço (URL) já é usado por outro item. Escolha outro.',
+        column === 'code'
+          ? 'Este código já é usado por outro produto. Escolha outro.'
+          : 'Este endereço (URL) já é usado por outro item. Escolha outro.',
       );
     }
     if (code === FOREIGN_KEY_VIOLATION) {

@@ -19,8 +19,19 @@ export interface Product {
   slug: string;
   description: string | null;
   dimensions: string | null;
+  /** Peso aproximado do molde. */
   final_weight: string | null;
+  /** Código de referência, ex.: MM-0142. */
+  code?: string | null;
+  cavities?: number | null;
+  material?: string | null;
+  /** Peso da peça pronta, ex.: "20 g por cavidade". */
+  piece_weight?: string | null;
+  min_order?: number | null;
+  /** Categoria principal. */
   collection: Collection | null;
+  /** Todas as categorias, incluindo a principal. */
+  collections?: Collection[];
   images: ProductImage[];
   // Campos de visibilidade, usados no painel.
   collection_id?: string | null;

@@ -1,10 +1,7 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Collection } from '../collections/entities/collection.entity';
 import { StorageService } from '../storage/storage.service';
 import { ProductImage } from './entities/product-image.entity';
 import { Product } from './entities/product.entity';
@@ -18,14 +15,23 @@ describe('ProductsService', () => {
     getMany: jest.fn(),
   };
   const products = {
-    create: jest.fn((data) => data),
+    create: jest.fn((data) => ({ ...data })),
     save: jest.fn((product) => Promise.resolve({ id: 'prod-1', ...product })),
+    merge: jest.fn((target, source) => Object.assign(target, source)),
     findOne: jest.fn(),
-    findOneOrFail: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    query: jest.fn(),
     createQueryBuilder: jest.fn(() => queryBuilder),
   };
+  const collections = { count: jest.fn() };
+  const NATAL = '0b67499e-8c2c-4b37-a329-4f31329b8e21';
+  const PIRULITOS = '0b67499e-8c2c-4b37-a329-4f31329b8e22';
+  /** Categorias passadas ao save, em ordem. */
+  const savedCollections = () =>
+    (products.save.mock.calls[0][0].collections as { id: string }[]).map(
+      (c) => c.id,
+    );
   const images = {
     create: jest.fn((data) => data),
     save: jest.fn((image) => Promise.resolve({ id: 'img-1', ...image })),
@@ -38,12 +44,17 @@ describe('ProductsService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     storage.removeByUrl.mockResolvedValue(undefined);
+    // Por padrão, toda categoria informada existe.
+    collections.count.mockImplementation(({ where }) =>
+      Promise.resolve(where.id.value.length),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
         { provide: getRepositoryToken(Product), useValue: products },
         { provide: getRepositoryToken(ProductImage), useValue: images },
+        { provide: getRepositoryToken(Collection), useValue: collections },
         { provide: StorageService, useValue: storage },
       ],
     }).compile();
@@ -51,11 +62,81 @@ describe('ProductsService', () => {
     service = module.get(ProductsService);
   });
 
+  it('na inicialização copia a categoria principal para a lista de categorias', async () => {
+    await service.onApplicationBootstrap();
+
+    expect(products.query).toHaveBeenCalledWith(
+      expect.stringContaining('ON CONFLICT DO NOTHING'),
+    );
+  });
+
   describe('create', () => {
-    it('salva o produto', async () => {
+    beforeEach(() => {
+      products.findOne.mockResolvedValue({ id: 'prod-1', name: 'Ovo liso' });
+    });
+
+    it('salva o produto e devolve o registro completo', async () => {
       await expect(
         service.create({ name: 'Ovo liso', slug: 'ovo-liso' }),
-      ).resolves.toEqual({ id: 'prod-1', name: 'Ovo liso', slug: 'ovo-liso' });
+      ).resolves.toEqual({ id: 'prod-1', name: 'Ovo liso' });
+      expect(products.save.mock.calls[0][0]).toMatchObject({
+        name: 'Ovo liso',
+        collection_id: null,
+        collections: [],
+      });
+      expect(products.save.mock.calls[0][0]).not.toHaveProperty(
+        'collection_ids',
+      );
+    });
+
+    it('a principal entra na lista de categorias', async () => {
+      await service.create({
+        name: 'Pirulito',
+        slug: 'pirulito',
+        collection_id: NATAL,
+        collection_ids: [PIRULITOS],
+      });
+
+      expect(products.save.mock.calls[0][0].collection_id).toBe(NATAL);
+      expect(savedCollections()).toEqual([NATAL, PIRULITOS]);
+    });
+
+    it('sem principal informada, a primeira da lista vira a principal', async () => {
+      await service.create({
+        name: 'Pirulito',
+        slug: 'pirulito',
+        collection_ids: [PIRULITOS, NATAL],
+      });
+
+      expect(products.save.mock.calls[0][0].collection_id).toBe(PIRULITOS);
+      expect(savedCollections()).toEqual([PIRULITOS, NATAL]);
+    });
+
+    it('recusa mais de 5 categorias contando a principal', async () => {
+      const ids = ['a', 'b', 'c', 'd', 'e'].map((n) => NATAL.slice(0, -1) + n);
+
+      await expect(
+        service.create({
+          name: 'X',
+          slug: 'x',
+          collection_id: PIRULITOS,
+          collection_ids: ids,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(products.save).not.toHaveBeenCalled();
+    });
+
+    it('recusa categoria que não existe', async () => {
+      collections.count.mockResolvedValue(1);
+
+      await expect(
+        service.create({
+          name: 'X',
+          slug: 'x',
+          collection_ids: [NATAL, PIRULITOS],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(products.save).not.toHaveBeenCalled();
     });
 
     it('recusa período que termina antes de começar', async () => {
@@ -70,37 +151,82 @@ describe('ProductsService', () => {
       expect(products.save).not.toHaveBeenCalled();
     });
 
-    it('endereço repetido vira 409 com mensagem clara', async () => {
-      products.save.mockRejectedValueOnce({ driverError: { code: '23505' } });
+    it('endereço repetido vira 409 com mensagem do endereço', async () => {
+      products.save.mockRejectedValueOnce({
+        driverError: {
+          code: '23505',
+          detail: 'Key (slug)=(ovo) already exists.',
+        },
+      });
 
       await expect(
         service.create({ name: 'Ovo', slug: 'ovo' }),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow('Este endereço (URL) já é usado');
     });
 
-    it('categoria que não existe vira 400', async () => {
-      products.save.mockRejectedValueOnce({ code: '23503' });
+    it('código repetido vira 409 com mensagem do código', async () => {
+      products.save.mockRejectedValueOnce({
+        code: '23505',
+        detail: 'Key (code)=(MM-1) already exists.',
+      });
 
       await expect(
-        service.create({
-          name: 'Ovo',
-          slug: 'ovo',
-          collection_id: '0b67499e-8c2c-4b37-a329-4f31329b8e2a',
-        }),
-      ).rejects.toThrow(BadRequestException);
+        service.create({ name: 'Ovo', slug: 'ovo', code: 'MM-1' }),
+      ).rejects.toThrow('Este código já é usado por outro produto');
     });
   });
 
   describe('update', () => {
-    it('grava só o que foi enviado e devolve o produto atualizado', async () => {
-      products.findOne.mockResolvedValue({ id: 'prod-1', name: 'Ovo liso' });
+    const stored = (overrides: object = {}) => ({
+      id: 'prod-1',
+      name: 'Pirulito',
+      collection_id: NATAL,
+      collection: { id: NATAL },
+      collections: [{ id: NATAL }, { id: PIRULITOS }],
+      ...overrides,
+    });
 
-      await expect(
-        service.update('prod-1', { name: 'Ovo liso' }),
-      ).resolves.toEqual({ id: 'prod-1', name: 'Ovo liso' });
-      expect(products.update).toHaveBeenCalledWith('prod-1', {
-        name: 'Ovo liso',
+    it('alterar só outro campo não mexe nas categorias', async () => {
+      products.findOne.mockResolvedValue(stored());
+
+      await service.update('prod-1', { material: 'Silicone' });
+
+      const saved = products.save.mock.calls[0][0];
+      expect(saved.material).toBe('Silicone');
+      expect(saved.collection_id).toBe(NATAL);
+      expect(savedCollections()).toEqual([NATAL, PIRULITOS]);
+      // A relação carregada sai, para não sobrepor a principal escolhida.
+      expect(saved).not.toHaveProperty('collection');
+    });
+
+    it('trocar a principal mantém as demais categorias', async () => {
+      products.findOne.mockResolvedValue(stored());
+
+      await service.update('prod-1', { collection_id: PIRULITOS });
+
+      expect(products.save.mock.calls[0][0].collection_id).toBe(PIRULITOS);
+      expect(savedCollections()).toEqual([NATAL, PIRULITOS]);
+    });
+
+    it('lista nova sem a principal antiga: a primeira da lista assume', async () => {
+      products.findOne.mockResolvedValue(stored());
+
+      await service.update('prod-1', { collection_ids: [PIRULITOS] });
+
+      expect(products.save.mock.calls[0][0].collection_id).toBe(PIRULITOS);
+      expect(savedCollections()).toEqual([PIRULITOS]);
+    });
+
+    it('lista vazia e principal nula tiram todas as categorias', async () => {
+      products.findOne.mockResolvedValue(stored());
+
+      await service.update('prod-1', {
+        collection_id: null,
+        collection_ids: [],
       });
+
+      expect(products.save.mock.calls[0][0].collection_id).toBeNull();
+      expect(savedCollections()).toEqual([]);
     });
 
     it('responde 404 para produto inexistente', async () => {
@@ -109,19 +235,18 @@ describe('ProductsService', () => {
       await expect(service.update('prod-x', { name: 'x' })).rejects.toThrow(
         NotFoundException,
       );
-      expect(products.update).not.toHaveBeenCalled();
+      expect(products.save).not.toHaveBeenCalled();
     });
 
     it('compara a nova data de fim com o início já gravado', async () => {
-      products.findOne.mockResolvedValue({
-        id: 'prod-1',
-        active_from: new Date('2026-12-10T00:00:00Z'),
-      });
+      products.findOne.mockResolvedValue(
+        stored({ active_from: new Date('2026-12-10T00:00:00Z') }),
+      );
 
       await expect(
         service.update('prod-1', { active_until: '2026-12-01T00:00:00Z' }),
       ).rejects.toThrow(BadRequestException);
-      expect(products.update).not.toHaveBeenCalled();
+      expect(products.save).not.toHaveBeenCalled();
     });
   });
 
@@ -133,13 +258,17 @@ describe('ProductsService', () => {
       expect(queryBuilder.andWhere).not.toHaveBeenCalled();
     });
 
-    it('filtra pela coleção', async () => {
+    it('filtra pela categoria considerando todas as do produto', async () => {
       await service.findAll('pascoa');
 
       expect(queryBuilder.andWhere).toHaveBeenCalledTimes(1);
       expect(queryBuilder.andWhere).toHaveBeenCalledWith(
-        'collection.slug = :slug',
+        expect.stringContaining('product_collections'),
         { slug: 'pascoa' },
+      );
+      expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'product.collections',
+        'collections',
       );
     });
 
@@ -164,7 +293,7 @@ describe('ProductsService', () => {
       });
       expect(products.findOne).toHaveBeenCalledWith({
         where: { slug: 'ovo' },
-        relations: { images: true, collection: true },
+        relations: { images: true, collection: true, collections: true },
       });
     });
 

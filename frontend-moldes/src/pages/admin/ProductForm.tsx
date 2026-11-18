@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, ChevronRight, CloudUpload, Eye, Info, Loader2, Plus, Ruler, Save, X } from 'lucide-react';
+import { ChevronRight, CloudUpload, Eye, Info, Loader2, Plus, Ruler, Save, X } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
 import { apiErrorMessage } from '../../utils/apiError';
 import { ACCEPTED_IMAGES, imageFormData, imageRejection } from '../../utils/images';
@@ -11,6 +11,8 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import { VisibilityFields } from '../../components/admin/VisibilityFields';
 import type { Collection, Product, ProductImage } from '../../types';
 
+/** Igual a MAX_COLLECTIONS no backend (save-product.dto.ts). */
+const MAX_COLLECTIONS = 5;
 
 const emptyForm = {
   name: '',
@@ -18,7 +20,15 @@ const emptyForm = {
   description: '',
   dimensions: '',
   final_weight: '',
+  code: '',
+  cavities: '',
+  material: '',
+  piece_weight: '',
+  min_order: '',
+  /** Categoria principal. */
   collection_id: '',
+  /** Todas as categorias marcadas, incluindo a principal. */
+  collection_ids: [] as string[],
   is_active: true,
   active_from: '',
   active_until: '',
@@ -43,6 +53,16 @@ export function ProductForm() {
 
   const update = (changes: Partial<typeof emptyForm>) => setForm((current) => ({ ...current, ...changes }));
 
+  // A primeira categoria marcada vira a principal; desmarcar a principal passa a vez para a próxima.
+  const toggleCollection = (collectionId: string, checked: boolean) =>
+    setForm((current) => {
+      const ids = checked
+        ? [...current.collection_ids, collectionId]
+        : current.collection_ids.filter((item) => item !== collectionId);
+      const principal = ids.includes(current.collection_id) ? current.collection_id : (ids[0] ?? '');
+      return { ...current, collection_ids: ids, collection_id: principal };
+    });
+
   useEffect(() => {
     api
       .get<Collection[]>('/collections')
@@ -66,7 +86,17 @@ export function ProductForm() {
           description: product.description ?? '',
           dimensions: product.dimensions ?? '',
           final_weight: product.final_weight ?? '',
+          code: product.code ?? '',
+          cavities: product.cavities ? String(product.cavities) : '',
+          material: product.material ?? '',
+          piece_weight: product.piece_weight ?? '',
+          min_order: product.min_order ? String(product.min_order) : '',
           collection_id: product.collection_id ?? '',
+          collection_ids: product.collections?.length
+            ? product.collections.map((collection) => collection.id)
+            : product.collection_id
+              ? [product.collection_id]
+              : [],
           is_active: product.is_active !== false,
           active_from: isoToLocalInput(product.active_from),
           active_until: isoToLocalInput(product.active_until),
@@ -121,6 +151,16 @@ export function ProductForm() {
     const slug = slugify(form.slug);
     if (!form.name.trim()) return showToast('Digite o nome do produto.', 'error');
     if (!slug) return showToast('Digite o endereço (URL) do produto.', 'error');
+    const wholeNumber = (value: string) => (value.trim() ? Number(value) : null);
+    for (const [field, label] of [
+      ['cavities', 'O número de cavidades'],
+      ['min_order', 'O pedido mínimo'],
+    ] as const) {
+      const value = wholeNumber(form[field]);
+      if (value !== null && (!Number.isInteger(value) || value < 1)) {
+        return showToast(`${label} deve ser um número inteiro maior que zero.`, 'error');
+      }
+    }
 
     setSaving(true);
     const payload = {
@@ -129,7 +169,13 @@ export function ProductForm() {
       description: form.description.trim() || null,
       dimensions: form.dimensions.trim() || null,
       final_weight: form.final_weight.trim() || null,
+      code: form.code.trim().toUpperCase() || null,
+      cavities: wholeNumber(form.cavities),
+      material: form.material.trim() || null,
+      piece_weight: form.piece_weight.trim() || null,
+      min_order: wholeNumber(form.min_order),
       collection_id: form.collection_id || null,
+      collection_ids: form.collection_ids,
       is_active: form.is_active,
       active_from: localInputToIso(form.active_from),
       active_until: localInputToIso(form.active_until),
@@ -146,7 +192,7 @@ export function ProductForm() {
     } catch (error) {
       setSaving(false);
       return showToast(
-        apiErrorMessage(error, 'Erro ao salvar o produto. Confira se o endereço (URL) já não é usado por outro.'),
+        apiErrorMessage(error, 'Erro ao salvar o produto. Confira se o endereço (URL) e o código já não são usados por outro.'),
         'error',
       );
     }
@@ -230,6 +276,22 @@ export function ProductForm() {
                 />
               </div>
               <div>
+                <label htmlFor="product-code" className="label-caps">Código de referência</label>
+                <input
+                  id="product-code"
+                  type="text"
+                  maxLength={30}
+                  value={form.code}
+                  onChange={(e) => update({ code: e.target.value.toUpperCase() })}
+                  placeholder="Ex.: MM-0142"
+                  autoCapitalize="characters"
+                  className="input uppercase sm:max-w-xs"
+                />
+                <p className="mt-2 text-[13px] text-outline">
+                  Opcional. Aparece no site e na mensagem de orçamento. Letras, números, ponto e hífen.
+                </p>
+              </div>
+              <div>
                 <label htmlFor="product-slug" className="label-caps">Endereço (URL)</label>
                 <div className="flex items-center rounded-lg border border-line bg-surface-low transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary sm:max-w-lg">
                   <span className="pl-4 text-outline">/molde/</span>
@@ -286,16 +348,71 @@ export function ProductForm() {
                 />
               </div>
               <div>
-                <label htmlFor="product-weight" className="label-caps">Peso da peça pronta</label>
+                <label htmlFor="product-weight" className="label-caps">Peso do molde (aproximado)</label>
                 <input
                   id="product-weight"
                   type="text"
                   maxLength={50}
                   value={form.final_weight}
                   onChange={(e) => update({ final_weight: e.target.value })}
-                  placeholder="Ex.: 350 g"
+                  placeholder="Ex.: 180 g"
                   className="input"
                 />
+                <p className="mt-2 text-[13px] text-outline">Pode variar um pouco de peça para peça.</p>
+              </div>
+              <div>
+                <label htmlFor="product-cavities" className="label-caps">Número de cavidades</label>
+                <input
+                  id="product-cavities"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  value={form.cavities}
+                  onChange={(e) => update({ cavities: e.target.value })}
+                  placeholder="Ex.: 12"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="product-piece-weight" className="label-caps">Peso da peça pronta</label>
+                <input
+                  id="product-piece-weight"
+                  type="text"
+                  maxLength={50}
+                  value={form.piece_weight}
+                  onChange={(e) => update({ piece_weight: e.target.value })}
+                  placeholder="Ex.: 20 g por cavidade"
+                  className="input"
+                />
+                <p className="mt-2 text-[13px] text-outline">Quanto pesa o chocolate que sai do molde.</p>
+              </div>
+              <div>
+                <label htmlFor="product-material" className="label-caps">Material</label>
+                <input
+                  id="product-material"
+                  type="text"
+                  maxLength={100}
+                  value={form.material}
+                  onChange={(e) => update({ material: e.target.value })}
+                  placeholder="Ex.: Silicone platinado"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="product-min-order" className="label-caps">Pedido mínimo</label>
+                <input
+                  id="product-min-order"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  value={form.min_order}
+                  onChange={(e) => update({ min_order: e.target.value })}
+                  placeholder="Ex.: 10"
+                  className="input"
+                />
+                <p className="mt-2 text-[13px] text-outline">Em unidades. Deixe em branco se não houver.</p>
               </div>
             </div>
           </section>
@@ -379,22 +496,50 @@ export function ProductForm() {
           </section>
 
           <section className="panel sm:p-6">
-            <h2 className="mb-4 font-serif text-xl font-semibold">Classificação</h2>
-            <label htmlFor="product-collection" className="label-caps">Categoria</label>
-            <div className="relative">
-              <select
-                id="product-collection"
-                value={form.collection_id}
-                onChange={(e) => update({ collection_id: e.target.value })}
-                className="input cursor-pointer appearance-none pr-10"
-              >
-                <option value="">Sem categoria</option>
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>{collection.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-soft" />
-            </div>
+            <h2 className="mb-1 font-serif text-xl font-semibold">Categorias</h2>
+            <p className="mb-4 text-[13px] text-outline">
+              Marque até {MAX_COLLECTIONS}. A principal aparece no selo do produto e no caminho da página.
+            </p>
+            {collections.length === 0 ? (
+              <p className="text-sm text-ink-soft">Nenhuma categoria cadastrada.</p>
+            ) : (
+              <ul className="flex flex-col gap-1" aria-label="Categorias do produto">
+                {collections.map((collection) => {
+                  const checked = form.collection_ids.includes(collection.id);
+                  const principal = form.collection_id === collection.id;
+                  const full = !checked && form.collection_ids.length >= MAX_COLLECTIONS;
+                  return (
+                    <li
+                      key={collection.id}
+                      className={`flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 ${checked ? 'bg-surface-low' : ''}`}
+                    >
+                      <label className={`flex flex-1 items-center gap-3 py-2 ${full ? 'opacity-50' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={full}
+                          onChange={(e) => toggleCollection(collection.id, e.target.checked)}
+                          className="h-4 w-4 shrink-0 accent-secondary"
+                        />
+                        <span className="font-medium">{collection.name}</span>
+                      </label>
+                      {checked &&
+                        (principal ? (
+                          <span className="status-chip bg-primary-pale text-primary-dark">Principal</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => update({ collection_id: collection.id })}
+                            className="min-h-9 rounded-full px-3 text-xs font-semibold text-primary hover:bg-primary-pale"
+                          >
+                            Tornar principal
+                          </button>
+                        ))}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           <section className="panel sm:p-6">

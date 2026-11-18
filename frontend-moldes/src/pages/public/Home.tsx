@@ -9,6 +9,7 @@ import { INTRO_HERO_OFFSET_MS, shouldShowIntro } from '../../utils/intro';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
+import { countByCollectionId } from '../../utils/products';
 
 const differentials = [
   {
@@ -76,15 +77,7 @@ export function Home() {
     fetchData();
   }, []);
 
-  const countByCollection = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const product of products) {
-      if (product.collection) {
-        counts.set(product.collection.id, (counts.get(product.collection.id) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [products]);
+  const countByCollection = useMemo(() => countByCollectionId(products), [products]);
 
   const latestProducts = useMemo(() => [...products].reverse().slice(0, 6), [products]);
 

@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
+import { collectionsOf, countByCollectionId, matchesSearch } from '../../utils/products';
 
 export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,15 +35,11 @@ export function Catalog() {
     fetchData();
   }, []);
 
+  // Contagem por categoria: um produto em duas categorias conta nas duas. Chave: slug.
   const countByCollection = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const product of products) {
-      if (product.collection) {
-        counts.set(product.collection.slug, (counts.get(product.collection.slug) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [products]);
+    const byId = countByCollectionId(products);
+    return new Map(collections.map((c) => [c.slug, byId.get(c.id) ?? 0]));
+  }, [products, collections]);
 
   const activeCollection = collections.find((c) => c.slug === activeSlug);
 
@@ -50,8 +47,8 @@ export function Catalog() {
     const term = search.trim().toLowerCase();
     return products.filter(
       (product) =>
-        (!activeSlug || product.collection?.slug === activeSlug) &&
-        (!term || product.name.toLowerCase().includes(term)),
+        (!activeSlug || collectionsOf(product).some((c) => c.slug === activeSlug)) &&
+        matchesSearch(product, term),
     );
   }, [products, activeSlug, search]);
 
@@ -91,7 +88,7 @@ export function Catalog() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar no catálogo..."
+              placeholder="Buscar por nome ou código..."
               aria-label="Buscar pelo nome do molde"
               className="field rounded-full bg-white pl-12"
             />
