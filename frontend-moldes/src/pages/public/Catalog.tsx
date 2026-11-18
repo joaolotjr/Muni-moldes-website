@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
-import { collectionsOf, countByCollectionId, matchesSearch } from '../../utils/products';
+import { collectionCover, collectionsOf, countByCollectionId, matchesSearch } from '../../utils/products';
 
 type SortKey = 'featured' | 'newest' | 'name';
 
@@ -45,6 +45,7 @@ export function Catalog() {
   }, [products, collections]);
 
   const activeCollection = collections.find((c) => c.slug === activeSlug);
+  const activeCover = activeCollection ? collectionCover(activeCollection, products) : null;
 
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -83,7 +84,21 @@ export function Catalog() {
     <div className="flex-1">
       <div className="container-page pt-5 sm:pt-10">
         {/* Faixa de abertura */}
-        <section className="rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+        <section className="relative isolate overflow-hidden rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+          {activeCover && (
+            <>
+              <img
+                src={`${API_URL}${activeCover}`}
+                alt=""
+                className="absolute inset-y-0 right-0 -z-10 hidden h-full w-3/5 object-cover md:block"
+              />
+              {/* Funde a foto com o fundo do bloco, para o texto continuar legível. */}
+              <span
+                className="absolute inset-y-0 right-0 -z-10 hidden w-3/5 bg-linear-to-r from-surface-high via-surface-high/70 to-transparent md:block"
+                aria-hidden="true"
+              />
+            </>
+          )}
           <p className="eyebrow tracking-[0.2em]">Catálogo</p>
           <h1 className="heading-1 mt-3">
             {activeCollection ? activeCollection.name : 'Catálogo de moldes'}

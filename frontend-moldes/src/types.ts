@@ -10,6 +10,8 @@ export interface Collection {
   name: string;
   slug: string;
   sort_order?: number;
+  /** Foto de capa enviada pelo painel. Sem ela, o site usa a capa automática. */
+  cover_url?: string | null;
   // Campos de visibilidade, usados no painel.
   is_active?: boolean;
   active_from?: string | null;
@@ -19,6 +21,7 @@ export interface Collection {
 export interface ProductImage {
   id: string;
   image_url: string;
+  is_cover?: boolean;
 }
 
 export interface Product {

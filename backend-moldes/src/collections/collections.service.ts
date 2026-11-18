@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets, DeepPartial } from 'typeorm';
 import { Collection } from './entities/collection.entity';
+import { StorageService } from '../storage/storage.service';
 import { assertValidSchedule, saveWithClearErrors } from '../common/save-rules';
 import {
   CreateCollectionDto,
@@ -17,6 +18,7 @@ export class CollectionsService {
   constructor(
     @InjectRepository(Collection)
     private collectionsRepository: Repository<Collection>,
+    private storage: StorageService,
   ) {}
 
   async create(data: CreateCollectionDto): Promise<Collection> {
@@ -119,6 +121,28 @@ export class CollectionsService {
       );
     }
 
+    const cover = collection.cover_url;
     await this.collectionsRepository.remove(collection);
+    await this.storage.removeByUrl(cover);
+  }
+
+  /** Troca a foto de capa e apaga a anterior do armazenamento. */
+  async setCover(id: string, imageUrl: string): Promise<Collection> {
+    const collection = await this.findOne(id);
+    const previous = collection.cover_url;
+    collection.cover_url = imageUrl;
+    const saved = await this.collectionsRepository.save(collection);
+    await this.storage.removeByUrl(previous);
+    return saved;
+  }
+
+  /** Remove a foto de capa: o site volta a usar a capa automática. */
+  async removeCover(id: string): Promise<Collection> {
+    const collection = await this.findOne(id);
+    const previous = collection.cover_url;
+    collection.cover_url = null;
+    const saved = await this.collectionsRepository.save(collection);
+    await this.storage.removeByUrl(previous);
+    return saved;
   }
 }

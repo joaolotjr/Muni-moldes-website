@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthUser } from '../auth/permissions';
 import { CollectionsController } from './collections.controller';
 import { CollectionsService } from './collections.service';
+import { StorageService } from '../storage/storage.service';
 
 describe('CollectionsController', () => {
   let controller: CollectionsController;
@@ -12,14 +13,20 @@ describe('CollectionsController', () => {
     create: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    setCover: jest.fn(),
+    removeCover: jest.fn(),
   };
+  const storage = { saveImage: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CollectionsController],
-      providers: [{ provide: CollectionsService, useValue: service }],
+      providers: [
+        { provide: CollectionsService, useValue: service },
+        { provide: StorageService, useValue: storage },
+      ],
     }).compile();
 
     controller = module.get(CollectionsController);
@@ -64,5 +71,37 @@ describe('CollectionsController', () => {
     expect(service.create).toHaveBeenCalledWith({ name: 'Páscoa' });
     expect(service.update).toHaveBeenCalledWith('col-1', { name: 'Natal' });
     expect(service.remove).toHaveBeenCalledWith('col-1');
+  });
+
+  describe('capa', () => {
+    const file = { mimetype: 'image/png' } as Express.Multer.File;
+
+    it('guarda a foto e grava como capa', async () => {
+      service.findOne.mockResolvedValue({ id: 'col-1' });
+      storage.saveImage.mockResolvedValue('/uploads/capa.webp');
+
+      await controller.uploadCover('col-1', file);
+
+      expect(storage.saveImage).toHaveBeenCalledWith(file);
+      expect(service.setCover).toHaveBeenCalledWith(
+        'col-1',
+        '/uploads/capa.webp',
+      );
+    });
+
+    it('não guarda o arquivo se a categoria não existe', async () => {
+      service.findOne.mockRejectedValueOnce(new NotFoundException());
+
+      await expect(controller.uploadCover('col-x', file)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(storage.saveImage).not.toHaveBeenCalled();
+    });
+
+    it('remove a capa', async () => {
+      await controller.removeCover('col-1');
+
+      expect(service.removeCover).toHaveBeenCalledWith('col-1');
+    });
   });
 });

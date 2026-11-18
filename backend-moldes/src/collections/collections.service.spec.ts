@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CollectionsService } from './collections.service';
 import { Collection } from './entities/collection.entity';
+import { StorageService } from '../storage/storage.service';
 
 describe('CollectionsService', () => {
   let service: CollectionsService;
@@ -15,6 +16,7 @@ describe('CollectionsService', () => {
     getRawOne: jest.fn(),
   };
   const manager = { update: jest.fn() };
+  const storage = { removeByUrl: jest.fn() };
   const repository = {
     create: jest.fn((data) => data),
     save: jest.fn((collection) =>
@@ -39,6 +41,7 @@ describe('CollectionsService', () => {
       providers: [
         CollectionsService,
         { provide: getRepositoryToken(Collection), useValue: repository },
+        { provide: StorageService, useValue: storage },
       ],
     }).compile();
 
@@ -144,14 +147,45 @@ describe('CollectionsService', () => {
     expect(repository.update).toHaveBeenCalledWith('col-1', { name: 'Natal' });
   });
 
+  describe('capa', () => {
+    it('troca a capa e apaga a anterior do armazenamento', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 'col-1',
+        cover_url: '/uploads/velha.webp',
+      });
+
+      const saved = await service.setCover('col-1', '/uploads/nova.webp');
+
+      expect(saved.cover_url).toBe('/uploads/nova.webp');
+      expect(storage.removeByUrl).toHaveBeenCalledWith('/uploads/velha.webp');
+    });
+
+    it('remover a capa limpa o campo e apaga o arquivo', async () => {
+      repository.findOne.mockResolvedValue({
+        id: 'col-1',
+        cover_url: '/uploads/velha.webp',
+      });
+
+      const saved = await service.removeCover('col-1');
+
+      expect(saved.cover_url).toBeNull();
+      expect(storage.removeByUrl).toHaveBeenCalledWith('/uploads/velha.webp');
+    });
+  });
+
   describe('remove', () => {
-    it('apaga a coleção vazia', async () => {
-      const collection = { id: 'col-1', products: [] };
+    it('apaga a coleção vazia e a foto de capa', async () => {
+      const collection = {
+        id: 'col-1',
+        products: [],
+        cover_url: '/uploads/capa.webp',
+      };
       repository.findOne.mockResolvedValue(collection);
 
       await service.remove('col-1');
 
       expect(repository.remove).toHaveBeenCalledWith(collection);
+      expect(storage.removeByUrl).toHaveBeenCalledWith('/uploads/capa.webp');
     });
 
     it('recusa apagar coleção com produtos', async () => {

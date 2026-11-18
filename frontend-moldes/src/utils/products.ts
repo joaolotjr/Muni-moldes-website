@@ -30,3 +30,27 @@ export function matchesSearch(product: Product, term: string): boolean {
     product.name.toLowerCase().includes(query) || (product.code ?? '').toLowerCase().includes(query)
   );
 }
+
+/** Foto de capa do produto: a marcada como capa ou, sem ela, a primeira. */
+export function productCover(product: Product): string | null {
+  const images = product.images ?? [];
+  return (images.find((image) => image.is_cover) ?? images[0])?.image_url ?? null;
+}
+
+/**
+ * Capa da categoria, nesta ordem: a foto enviada pelo painel; a foto de um produto
+ * da categoria (primeiro os que a têm como principal, na ordem do catálogo); nenhuma.
+ */
+export function collectionCover(collection: Collection, products: Product[]): string | null {
+  if (collection.cover_url) return collection.cover_url;
+  const members = products.filter((product) => collectionsOf(product).some((c) => c.id === collection.id));
+  const ordered = [
+    ...members.filter((product) => product.collection?.id === collection.id),
+    ...members.filter((product) => product.collection?.id !== collection.id),
+  ];
+  for (const product of ordered) {
+    const cover = productCover(product);
+    if (cover) return cover;
+  }
+  return null;
+}

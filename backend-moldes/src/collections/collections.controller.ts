@@ -9,11 +9,16 @@ import {
   Query,
   NotFoundException,
   ParseUUIDPipe,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CollectionsService } from './collections.service';
 import { Auth, CurrentUser, OptionalAuth } from '../auth/auth.decorator';
 import type { AuthUser } from '../auth/permissions';
 import { isVisibleNow } from '../visibility';
+import { StorageService } from '../storage/storage.service';
+import { imageUploadOptions } from '../storage/image-upload';
 
 import {
   CreateCollectionDto,
@@ -23,7 +28,10 @@ import { ReorderCollectionsDto } from './dto/reorder-collections.dto';
 
 @Controller('collections')
 export class CollectionsController {
-  constructor(private readonly collectionsService: CollectionsService) {}
+  constructor(
+    private readonly collectionsService: CollectionsService,
+    private readonly storage: StorageService,
+  ) {}
 
   // Sem login, só as categorias visíveis no site.
   @OptionalAuth()
@@ -74,5 +82,24 @@ export class CollectionsController {
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.collectionsService.remove(id);
+  }
+
+  @Auth('collections')
+  @Post(':id/cover')
+  @UseInterceptors(FileInterceptor('file', imageUploadOptions))
+  async uploadCover(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    // Confere que a categoria existe antes de guardar o arquivo.
+    await this.collectionsService.findOne(id);
+    const imageUrl = await this.storage.saveImage(file);
+    return this.collectionsService.setCover(id, imageUrl);
+  }
+
+  @Auth('collections')
+  @Delete(':id/cover')
+  removeCover(@Param('id', ParseUUIDPipe) id: string) {
+    return this.collectionsService.removeCover(id);
   }
 }
