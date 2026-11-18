@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Factory, MessagesSquare, Package } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { IntroSplash } from '../../components/public/IntroSplash';
@@ -9,6 +9,7 @@ import { INTRO_HERO_OFFSET_MS, shouldShowIntro } from '../../utils/intro';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
+import { collectionCover, countByCollectionId } from '../../utils/products';
 
 const differentials = [
   {
@@ -44,6 +45,12 @@ const collectionTones = [
   'bg-secondary-soft text-secondary-dark',
   'bg-surface-high text-ink',
 ];
+// Com foto, a mesma cor vira um véu escuro, mais forte embaixo, onde fica o nome.
+const collectionVeils = [
+  'from-primary-dark/90 via-primary-dark/45 to-primary-dark/15',
+  'from-secondary-dark/90 via-secondary-dark/45 to-secondary-dark/15',
+  'from-ink/85 via-ink/40 to-ink/10',
+];
 
 export function Home() {
   const site = useSite();
@@ -76,17 +83,18 @@ export function Home() {
     fetchData();
   }, []);
 
-  const countByCollection = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const product of products) {
-      if (product.collection) {
-        counts.set(product.collection.id, (counts.get(product.collection.id) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [products]);
+  const countByCollection = useMemo(() => countByCollectionId(products), [products]);
 
-  const latestProducts = useMemo(() => [...products].reverse().slice(0, 6), [products]);
+  const featuredProducts = useMemo(() => products.filter((p) => p.is_featured).slice(0, 6), [products]);
+  // Os destaques já aparecem acima; aqui entram os mais novos que não são destaque.
+  const latestProducts = useMemo(
+    () =>
+      [...products]
+        .filter((p) => !p.is_featured)
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+        .slice(0, 6),
+    [products],
+  );
 
   return (
     <div className="flex-1">
@@ -223,12 +231,27 @@ export function Home() {
                   <ul className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-6 lg:grid-cols-3">
                     {collections.slice(0, 6).map((collection, index) => {
                       const count = countByCollection.get(collection.id) ?? 0;
+                      const cover = collectionCover(collection, products);
+                      const tone = index % collectionTones.length;
                       return (
                         <li key={collection.id}>
                           <Link
                             to={`/catalogo?colecao=${collection.slug}`}
-                            className={`group flex h-32 flex-col justify-between rounded-2xl p-4 shadow-soft transition duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:h-44 sm:p-7 ${collectionTones[index % collectionTones.length]}`}
+                            className={`group relative isolate flex h-32 flex-col justify-between overflow-hidden rounded-2xl p-4 shadow-soft transition duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:h-44 sm:p-7 ${
+                              cover ? 'bg-ink text-white' : collectionTones[tone]
+                            }`}
                           >
+                            {cover && (
+                              <>
+                                <img
+                                  src={`${API_URL}${cover}`}
+                                  alt=""
+                                  loading="lazy"
+                                  className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transition-none"
+                                />
+                                <span className={`absolute inset-0 -z-10 bg-linear-to-t ${collectionVeils[tone]}`} aria-hidden="true" />
+                              </>
+                            )}
                             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] opacity-80">
                               {count} {count === 1 ? 'molde' : 'moldes'}
                             </span>
@@ -243,6 +266,17 @@ export function Home() {
                       );
                     })}
                   </ul>
+                )}
+
+                {featuredProducts.length > 0 && (
+                  <>
+                    <h3 className="heading-3 mt-12 sm:mt-16">Destaques</h3>
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-3">
+                      {featuredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {latestProducts.length > 0 && (

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { apiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import type { Collection, Product } from '../../types';
+import { countByCollectionId } from '../../utils/products';
 
 export function CollectionsList() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -25,7 +26,9 @@ export function CollectionsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const countByCollection = useMemo(() => {
+  // Total de produtos em cada categoria e quantos a têm como principal.
+  const countByCollection = useMemo(() => countByCollectionId(products), [products]);
+  const principalCount = useMemo(() => {
     const counts = new Map<string, number>();
     for (const product of products) {
       if (product.collection) counts.set(product.collection.id, (counts.get(product.collection.id) ?? 0) + 1);
@@ -33,10 +36,35 @@ export function CollectionsList() {
     return counts;
   }, [products]);
 
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  // Troca a categoria de lugar com a vizinha e grava a ordem nova.
+  const move = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= collections.length) return;
+    const previous = collections;
+    const next = [...collections];
+    [next[index], next[target]] = [next[target], next[index]];
+    setCollections(next);
+    setSavingOrder(true);
+    try {
+      await api.put('/collections/order', { ids: next.map((c) => c.id) });
+    } catch (error) {
+      setCollections(previous);
+      showToast(apiErrorMessage(error, 'Erro ao salvar a ordem.'), 'error');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   const handleDelete = (collection: Collection) => {
+    const linked = countByCollection.get(collection.id) ?? 0;
     confirm({
       title: 'Excluir categoria',
-      message: `Tem certeza que deseja excluir a categoria "${collection.name}"?`,
+      message:
+        linked > 0
+          ? `"${collection.name}" é categoria adicional de ${linked === 1 ? '1 produto' : `${linked} produtos`}. Ao excluir, ela sai desses produtos, que continuam nas outras categorias. Continuar?`
+          : `Tem certeza que deseja excluir a categoria "${collection.name}"?`,
       confirmText: 'Excluir',
       onConfirm: async () => {
         try {
@@ -67,7 +95,7 @@ export function CollectionsList() {
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-line bg-surface-low px-4 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft sm:px-6">
           <div>Nome da categoria</div>
           <div className="text-right">Produtos</div>
-          <div className="w-20 text-right">Ações</div>
+          <div className="text-right">Ações</div>
         </div>
 
         {loading ? (
@@ -79,8 +107,9 @@ export function CollectionsList() {
           </div>
         ) : (
           <ul>
-            {collections.map((collection) => {
+            {collections.map((collection, index) => {
               const count = countByCollection.get(collection.id) ?? 0;
+              const principalOf = principalCount.get(collection.id) ?? 0;
               const active = collection.is_active !== false;
               return (
                 <li key={collection.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-line px-4 py-4 transition-colors last:border-b-0 hover:bg-surface-mid sm:px-6">
@@ -101,7 +130,27 @@ export function CollectionsList() {
                   <span className={`status-chip border border-line bg-surface ${count === 0 ? 'text-outline/70' : 'text-ink-soft'}`}>
                     {count} {count === 1 ? 'item' : 'itens'}
                   </span>
-                  <div className="flex w-20 justify-end gap-1">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => move(index, -1)}
+                      disabled={index === 0 || savingOrder}
+                      aria-label={`Subir ${collection.name}`}
+                      title="Subir na ordem"
+                      className="icon-btn"
+                    >
+                      <ArrowUp className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(index, 1)}
+                      disabled={index === collections.length - 1 || savingOrder}
+                      aria-label={`Descer ${collection.name}`}
+                      title="Descer na ordem"
+                      className="icon-btn"
+                    >
+                      <ArrowDown className="h-5 w-5" />
+                    </button>
                     <Link to={`/admin/colecoes/${collection.id}`} aria-label={`Editar ${collection.name}`} title="Editar" className="icon-btn">
                       <Pencil className="h-5 w-5" />
                     </Link>
@@ -109,9 +158,13 @@ export function CollectionsList() {
                     <button
                       type="button"
                       onClick={() => handleDelete(collection)}
-                      disabled={count > 0}
+                      disabled={principalOf > 0}
                       aria-label={`Excluir ${collection.name}`}
-                      title={count > 0 ? 'Só é possível excluir categoria sem produtos' : 'Excluir categoria vazia'}
+                      title={
+                        principalOf > 0
+                          ? 'É a categoria principal de algum produto: troque a principal desses produtos antes'
+                          : 'Excluir categoria'
+                      }
                       className="icon-btn hover:bg-[#ffdad6] hover:text-[#ba1a1a]"
                     >
                       <Trash2 className="h-5 w-5" />

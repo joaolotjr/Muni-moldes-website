@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
+import { collectionCover, collectionsOf, countByCollectionId, matchesSearch } from '../../utils/products';
+
+type SortKey = 'featured' | 'newest' | 'name';
 
 export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,6 +17,7 @@ export function Catalog() {
   const [search, setSearch] = useState('');
 
   const activeSlug = searchParams.get('colecao') || '';
+  const [sort, setSort] = useState<SortKey>('featured');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,26 +38,29 @@ export function Catalog() {
     fetchData();
   }, []);
 
+  // Contagem por categoria: um produto em duas categorias conta nas duas. Chave: slug.
   const countByCollection = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const product of products) {
-      if (product.collection) {
-        counts.set(product.collection.slug, (counts.get(product.collection.slug) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [products]);
+    const byId = countByCollectionId(products);
+    return new Map(collections.map((c) => [c.slug, byId.get(c.id) ?? 0]));
+  }, [products, collections]);
 
   const activeCollection = collections.find((c) => c.slug === activeSlug);
+  const activeCover = activeCollection ? collectionCover(activeCollection, products) : null;
 
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return products.filter(
+    const list = products.filter(
       (product) =>
-        (!activeSlug || product.collection?.slug === activeSlug) &&
-        (!term || product.name.toLowerCase().includes(term)),
+        (!activeSlug || collectionsOf(product).some((c) => c.slug === activeSlug)) &&
+        matchesSearch(product, term),
     );
-  }, [products, activeSlug, search]);
+    // A API já devolve na ordem "destaques primeiro".
+    if (sort === 'newest') {
+      return [...list].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    if (sort === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return list;
+  }, [products, activeSlug, search, sort]);
 
   const clearFilters = () => {
     setSearch('');
@@ -77,7 +84,21 @@ export function Catalog() {
     <div className="flex-1">
       <div className="container-page pt-5 sm:pt-10">
         {/* Faixa de abertura */}
-        <section className="rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+        <section className="relative isolate overflow-hidden rounded-2xl bg-surface-high px-5 py-8 shadow-soft sm:px-12 sm:py-14">
+          {activeCover && (
+            <>
+              <img
+                src={`${API_URL}${activeCover}`}
+                alt=""
+                className="absolute inset-y-0 right-0 -z-10 hidden h-full w-3/5 object-cover md:block"
+              />
+              {/* Funde a foto com o fundo do bloco, para o texto continuar legível. */}
+              <span
+                className="absolute inset-y-0 right-0 -z-10 hidden w-3/5 bg-linear-to-r from-surface-high via-surface-high/70 to-transparent md:block"
+                aria-hidden="true"
+              />
+            </>
+          )}
           <p className="eyebrow tracking-[0.2em]">Catálogo</p>
           <h1 className="heading-1 mt-3">
             {activeCollection ? activeCollection.name : 'Catálogo de moldes'}
@@ -91,7 +112,7 @@ export function Catalog() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar no catálogo..."
+              placeholder="Buscar por nome ou código..."
               aria-label="Buscar pelo nome do molde"
               className="field rounded-full bg-white pl-12"
             />
@@ -144,11 +165,25 @@ export function Catalog() {
         </aside>
 
         <div className="min-w-0 flex-1">
-          <p className="mb-5 text-sm text-ink-soft sm:mb-8" aria-live="polite">
-            {loading
-              ? 'Carregando moldes...'
-              : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
-          </p>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+            <p className="text-sm text-ink-soft" aria-live="polite">
+              {loading
+                ? 'Carregando moldes...'
+                : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
+            </p>
+            <label className="flex items-center gap-2 text-sm text-ink-soft">
+              Ordenar por
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                className="min-h-11 cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-primary focus:outline-none"
+              >
+                <option value="featured">Destaques</option>
+                <option value="newest">Mais recentes</option>
+                <option value="name">Nome (A a Z)</option>
+              </select>
+            </label>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">

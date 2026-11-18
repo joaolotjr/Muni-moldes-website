@@ -160,3 +160,91 @@ describe('CreateCollectionDto e UpdateCollectionDto', () => {
     ).toEqual([]);
   });
 });
+
+describe('Campos de código, dados técnicos e categorias do produto', () => {
+  const base = { name: 'Pirulito', slug: 'pirulito' };
+
+  it('aceita os campos novos e grava o código em maiúsculas', async () => {
+    const { instance, fields } = await check(CreateProductDto, {
+      ...base,
+      code: ' mm-0142 ',
+      cavities: 6,
+      material: ' Silicone platinado ',
+      piece_weight: '25 g por cavidade',
+      min_order: 10,
+      collection_ids: ['0b67499e-8c2c-4b37-a329-4f31329b8e2a'],
+    });
+
+    expect(fields).toEqual([]);
+    expect(instance).toMatchObject({
+      code: 'MM-0142',
+      material: 'Silicone platinado',
+    });
+  });
+
+  it('código em branco vira null', async () => {
+    const { instance } = await check(CreateProductDto, {
+      ...base,
+      code: '   ',
+    });
+
+    expect(instance.code).toBeNull();
+  });
+
+  it.each(['MM 01', 'MM/01', '-MM01', 'ç01', 'x'.repeat(31)])(
+    'recusa o código "%s"',
+    async (code) => {
+      expect((await check(CreateProductDto, { ...base, code })).fields).toEqual(
+        ['code'],
+      );
+    },
+  );
+
+  it('aceita destaque, selo e ordem; recusa selo desconhecido', async () => {
+    expect(
+      (
+        await check(CreateProductDto, {
+          ...base,
+          is_featured: true,
+          badge: 'new',
+          sort_order: -3,
+        })
+      ).fields,
+    ).toEqual([]);
+    expect(
+      (
+        await check(CreateProductDto, {
+          ...base,
+          badge: 'promocao',
+          sort_order: 1.5,
+        })
+      ).fields,
+    ).toEqual(['badge', 'sort_order']);
+  });
+
+  it('recusa números fora do intervalo ou não inteiros', async () => {
+    const { fields } = await check(CreateProductDto, {
+      ...base,
+      cavities: 0,
+      min_order: 2.5,
+    });
+
+    expect(fields).toEqual(['cavities', 'min_order']);
+  });
+
+  it('recusa lista de categorias com repetição, id inválido ou mais de 5', async () => {
+    const id = '0b67499e-8c2c-4b37-a329-4f31329b8e2a';
+    expect(
+      (await check(CreateProductDto, { ...base, collection_ids: [id, id] }))
+        .fields,
+    ).toEqual(['collection_ids']);
+    expect(
+      (await check(CreateProductDto, { ...base, collection_ids: ['abc'] }))
+        .fields,
+    ).toEqual(['collection_ids']);
+    const six = ['1', '2', '3', '4', '5', '6'].map((n) => id.slice(0, -1) + n);
+    expect(
+      (await check(CreateProductDto, { ...base, collection_ids: six })).fields,
+    ).toEqual(['collection_ids']);
+  });
+});

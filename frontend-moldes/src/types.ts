@@ -1,7 +1,17 @@
+export type ProductBadge = 'new' | 'bestseller';
+
+export const badgeLabels: Record<ProductBadge, string> = {
+  new: 'Lançamento',
+  bestseller: 'Mais vendido',
+};
+
 export interface Collection {
   id: string;
   name: string;
   slug: string;
+  sort_order?: number;
+  /** Foto de capa enviada pelo painel. Sem ela, o site usa a capa automática. */
+  cover_url?: string | null;
   // Campos de visibilidade, usados no painel.
   is_active?: boolean;
   active_from?: string | null;
@@ -11,6 +21,7 @@ export interface Collection {
 export interface ProductImage {
   id: string;
   image_url: string;
+  is_cover?: boolean;
 }
 
 export interface Product {
@@ -19,8 +30,25 @@ export interface Product {
   slug: string;
   description: string | null;
   dimensions: string | null;
+  /** Peso aproximado do molde. */
   final_weight: string | null;
+  /** Código de referência, ex.: MM-0142. */
+  code?: string | null;
+  cavities?: number | null;
+  material?: string | null;
+  /** Peso da peça pronta, ex.: "20 g por cavidade". */
+  piece_weight?: string | null;
+  min_order?: number | null;
+  /** Categoria principal. */
   collection: Collection | null;
+  /** Todas as categorias, incluindo a principal. */
+  collections?: Collection[];
+  /** Aparece em "Destaques" na home e primeiro no catálogo. */
+  is_featured?: boolean;
+  badge?: ProductBadge | null;
+  /** Ordem no catálogo: menor vem antes. */
+  sort_order?: number;
+  created_at?: string;
   images: ProductImage[];
   // Campos de visibilidade, usados no painel.
   collection_id?: string | null;

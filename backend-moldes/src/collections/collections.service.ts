@@ -1,42 +1,83 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets, DeepPartial } from 'typeorm';
 import { Collection } from './entities/collection.entity';
+import { StorageService } from '../storage/storage.service';
 import { assertValidSchedule, saveWithClearErrors } from '../common/save-rules';
-import { CreateCollectionDto, UpdateCollectionDto } from './dto/save-collection.dto';
+import {
+  CreateCollectionDto,
+  UpdateCollectionDto,
+} from './dto/save-collection.dto';
 
 @Injectable()
 export class CollectionsService {
   constructor(
     @InjectRepository(Collection)
     private collectionsRepository: Repository<Collection>,
+    private storage: StorageService,
   ) {}
 
   async create(data: CreateCollectionDto): Promise<Collection> {
     assertValidSchedule(data);
+    // A nova categoria entra no fim da ordem.
+    const { max } = (await this.collectionsRepository
+      .createQueryBuilder('collection')
+      .select('MAX(collection.sort_order)', 'max')
+      .getRawOne<{ max: number | null }>()) ?? { max: null };
     return saveWithClearErrors(() =>
       this.collectionsRepository.save(
-        this.collectionsRepository.create(data as DeepPartial<Collection>),
+        this.collectionsRepository.create({
+          ...(data as DeepPartial<Collection>),
+          sort_order: (max ?? -1) + 1,
+        }),
       ),
     );
   }
 
+  /** Grava a ordem das categorias: a posição na lista vira a ordem. */
+  async reorder(ids: string[]): Promise<Collection[]> {
+    const existing = await this.collectionsRepository.find();
+    const known = new Set(existing.map((c) => c.id));
+    if (ids.length !== known.size || ids.some((id) => !known.has(id))) {
+      throw new BadRequestException(
+        'A lista precisa ter todas as categorias, sem repetir. Recarregue a página e tente de novo.',
+      );
+    }
+    await this.collectionsRepository.manager.transaction(async (manager) => {
+      for (const [index, id] of ids.entries()) {
+        await manager.update(Collection, { id }, { sort_order: index });
+      }
+    });
+    return this.findAll();
+  }
+
   async findAll(isPublic: boolean = false): Promise<Collection[]> {
-    const query = this.collectionsRepository.createQueryBuilder('collection');
+    const query = this.collectionsRepository
+      .createQueryBuilder('collection')
+      .orderBy('collection.sort_order', 'ASC')
+      .addOrderBy('collection.name', 'ASC');
 
     if (isPublic) {
       query.andWhere('collection.is_active = :isActive', { isActive: true });
       query.andWhere(
-        new Brackets(qb => {
-          qb.where('collection.active_from IS NULL')
-            .orWhere('collection.active_from <= :now', { now: new Date() });
-        })
+        new Brackets((qb) => {
+          qb.where('collection.active_from IS NULL').orWhere(
+            'collection.active_from <= :now',
+            { now: new Date() },
+          );
+        }),
       );
       query.andWhere(
-        new Brackets(qb => {
-          qb.where('collection.active_until IS NULL')
-            .orWhere('collection.active_until >= :now', { now: new Date() });
-        })
+        new Brackets((qb) => {
+          qb.where('collection.active_until IS NULL').orWhere(
+            'collection.active_until >= :now',
+            { now: new Date() },
+          );
+        }),
       );
     }
 
@@ -44,7 +85,9 @@ export class CollectionsService {
   }
 
   async findOne(id: string): Promise<Collection> {
-    const collection = await this.collectionsRepository.findOne({ where: { id } });
+    const collection = await this.collectionsRepository.findOne({
+      where: { id },
+    });
     if (!collection) {
       throw new NotFoundException(`Collection #${id} not found`);
     }
@@ -61,19 +104,45 @@ export class CollectionsService {
   }
 
   async remove(id: string): Promise<void> {
-    const collection = await this.collectionsRepository.findOne({ 
+    const collection = await this.collectionsRepository.findOne({
       where: { id },
-      relations: { products: true }
+      relations: { products: true },
     });
-    
+
     if (!collection) {
       throw new NotFoundException(`Collection #${id} not found`);
     }
 
+    // Só bloqueia quando é a categoria principal de algum produto. Quando ela é
+    // apenas uma categoria a mais, o vínculo sai junto (ON DELETE CASCADE).
     if (collection.products && collection.products.length > 0) {
-      throw new BadRequestException('Não é possível excluir uma coleção que possui produtos vinculados.');
+      throw new BadRequestException(
+        'Esta categoria é a principal de algum produto. Troque a categoria principal desses produtos antes de excluir.',
+      );
     }
 
+    const cover = collection.cover_url;
     await this.collectionsRepository.remove(collection);
+    await this.storage.removeByUrl(cover);
+  }
+
+  /** Troca a foto de capa e apaga a anterior do armazenamento. */
+  async setCover(id: string, imageUrl: string): Promise<Collection> {
+    const collection = await this.findOne(id);
+    const previous = collection.cover_url;
+    collection.cover_url = imageUrl;
+    const saved = await this.collectionsRepository.save(collection);
+    await this.storage.removeByUrl(previous);
+    return saved;
+  }
+
+  /** Remove a foto de capa: o site volta a usar a capa automática. */
+  async removeCover(id: string): Promise<Collection> {
+    const collection = await this.findOne(id);
+    const previous = collection.cover_url;
+    collection.cover_url = null;
+    const saved = await this.collectionsRepository.save(collection);
+    await this.storage.removeByUrl(previous);
+    return saved;
   }
 }

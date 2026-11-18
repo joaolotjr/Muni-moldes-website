@@ -6,6 +6,7 @@ import { apiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import type { Collection, Product } from '../../types';
+import { collectionsOf, matchesSearch, secondaryCollectionsOf } from '../../utils/products';
 
 function StatusChip({ active }: { active: boolean }) {
   return active ? (
@@ -40,8 +41,11 @@ export function ProductsList() {
     const term = search.trim().toLowerCase();
     return products.filter(
       (product) =>
-        (!term || product.name.toLowerCase().includes(term)) &&
-        (!collectionId || (collectionId === 'none' ? !product.collection : product.collection?.id === collectionId)) &&
+        matchesSearch(product, term) &&
+        (!collectionId ||
+          (collectionId === 'none'
+            ? collectionsOf(product).length === 0
+            : collectionsOf(product).some((c) => c.id === collectionId))) &&
         (!status || (status === 'active') === (product.is_active !== false)),
     );
   }, [products, search, collectionId, status]);
@@ -85,7 +89,7 @@ export function ProductsList() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar pelo nome do molde..."
+            placeholder="Buscar por nome ou código"
             aria-label="Buscar pelo nome do molde"
             className="input py-2.5 pl-10"
           />
@@ -152,12 +156,22 @@ export function ProductsList() {
                       <Link to={`/admin/produtos/${product.id}`} className={`block truncate text-[15px] font-semibold hover:text-primary ${active ? '' : 'text-ink-soft'}`}>
                         {product.name}
                       </Link>
-                      <p className="truncate text-sm text-ink-soft">/{product.slug}</p>
+                      <p className="truncate text-sm text-ink-soft">
+                        {product.code && <span className="mr-2 font-semibold text-ink">{product.code}</span>}/{product.slug}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 md:contents">
                     <div className="min-w-0 truncate text-sm text-ink-soft md:w-44 md:shrink-0 md:pr-4 md:text-base md:text-ink">
                       {product.collection?.name ?? 'Sem categoria'}
+                      {secondaryCollectionsOf(product).length > 0 && (
+                        <span
+                          className="ml-1.5 text-xs font-semibold text-outline"
+                          title={secondaryCollectionsOf(product).map((c) => c.name).join(', ')}
+                        >
+                          +{secondaryCollectionsOf(product).length}
+                        </span>
+                      )}
                     </div>
                     <div className="hidden w-44 shrink-0 truncate pr-4 text-sm text-ink-soft lg:block">{measures || '–'}</div>
                     <div className="shrink-0 md:w-24">

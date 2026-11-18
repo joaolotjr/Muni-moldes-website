@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ImageOff } from 'lucide-react';
+import { ArrowLeft, ClipboardList, ImageOff } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
 import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { ProductCard } from '../../components/public/ProductCard';
 import type { Product } from '../../types';
+import { collectionsOf, secondaryCollectionsOf } from '../../utils/products';
+import { useQuote } from '../../contexts/QuoteContext';
+import { useToast } from '../../contexts/ToastContext';
+import { clampQuantity, MAX_QUANTITY } from '../../utils/quote';
 
 export function ProductDetails() {
   const { slug } = useParams();
@@ -14,22 +18,31 @@ export function ProductDetails() {
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const { add, has, items, count } = useQuote();
+  const { showToast } = useToast();
+  const [quantityInput, setQuantityInput] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
+      setQuantityInput(null);
       try {
         const res = await api.get<Product>(`/products/${slug}`);
         setProduct(res.data);
         setActiveImage(res.data.images?.[0]?.image_url ?? null);
 
-        // Outros moldes da mesma linha. Se falhar, a página segue sem a seção.
-        const collectionId = res.data.collection?.id;
-        if (collectionId) {
+        // Outros moldes que dividem alguma categoria com este, primeiro os da mesma
+        // categoria principal. Se falhar, a página segue sem a seção.
+        const ids = new Set(collectionsOf(res.data).map((c) => c.id));
+        if (ids.size > 0) {
           try {
             const all = await api.get<Product[]>('/products?public=true');
+            const principalId = res.data.collection?.id;
             setRelated(
-              all.data.filter((p) => p.collection?.id === collectionId && p.id !== res.data.id).slice(0, 4),
+              all.data
+                .filter((p) => p.id !== res.data.id && collectionsOf(p).some((c) => ids.has(c.id)))
+                .sort((a, b) => Number(b.collection?.id === principalId) - Number(a.collection?.id === principalId))
+                .slice(0, 4),
             );
           } catch {
             setRelated([]);
@@ -77,10 +90,21 @@ export function ProductDetails() {
   }
 
   const specs = [
+    { label: 'Código', value: product.code },
     { label: 'Linha', value: product.collection?.name },
     { label: 'Dimensões', value: product.dimensions },
-    { label: 'Peso', value: product.final_weight },
+    { label: 'Cavidades', value: product.cavities ? String(product.cavities) : null },
+    { label: 'Peso da peça pronta', value: product.piece_weight },
+    { label: 'Material', value: product.material },
+    { label: 'Peso do molde', value: product.final_weight ? `${product.final_weight} (aprox.)` : null },
+    { label: 'Pedido mínimo', value: product.min_order ? `${product.min_order} unidades` : null },
   ].filter((spec) => spec.value);
+  const alsoIn = secondaryCollectionsOf(product);
+  const inList = has(product.id);
+  // Quantidade sugerida: a que já está na lista ou o pedido mínimo do molde.
+  const quantity =
+    quantityInput ??
+    String(items.find((item) => item.productId === product.id)?.quantity ?? product.min_order ?? 1);
 
   return (
     <div className="container-page flex-1 pb-14 pt-6 sm:pb-24 sm:pt-10 lg:pt-16">
@@ -160,18 +184,65 @@ export function ProductDetails() {
             </div>
           )}
 
+          {alsoIn.length > 0 && (
+            <p className="mt-6 text-sm text-ink-soft">
+              Também em:{' '}
+              {alsoIn.map((collection, index) => (
+                <span key={collection.id}>
+                  {index > 0 && ', '}
+                  <Link to={`/catalogo?colecao=${collection.slug}`} className="font-semibold text-primary hover:underline">
+                    {collection.name}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          )}
+
           <div className="mt-8 border-t border-line pt-8">
+            <label htmlFor="quote-quantity" className="field-label">Quantidade</label>
+            <div className="flex gap-3">
+              <input
+                id="quote-quantity"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_QUANTITY}
+                value={quantity}
+                onChange={(e) => setQuantityInput(e.target.value)}
+                onBlur={() => setQuantityInput(String(clampQuantity(Number(quantity))))}
+                className="field w-28 text-center"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  add(product, clampQuantity(Number(quantity)));
+                  showToast(inList ? 'Quantidade atualizada na lista.' : 'Molde adicionado à lista de orçamento.', 'success');
+                }}
+                className="btn btn-primary flex-1"
+              >
+                <ClipboardList className="h-5 w-5" />
+                {inList ? 'Atualizar na lista' : 'Adicionar à lista'}
+              </button>
+            </div>
+            {product.min_order && Number(quantity) < product.min_order && (
+              <p className="mt-2 text-sm text-[#8a5300]">Pedido mínimo deste molde: {product.min_order} unidades.</p>
+            )}
+            {inList && (
+              <Link to="/orcamento" className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                Ver lista de orçamento ({count} {count === 1 ? 'modelo' : 'modelos'})
+              </Link>
+            )}
             <a
               href={site.productQuoteLink(product)}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-primary w-full py-5"
+              className="btn btn-outline mt-4 w-full"
             >
               <WhatsAppIcon className="h-5 w-5" />
-              Solicitar orçamento
+              Orçamento só deste molde
             </a>
             <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-              Informe a quantidade desejada. Para vários modelos, envie a lista completa na mesma conversa.
+              Vai pedir vários modelos? Adicione cada um à lista e envie tudo de uma vez pelo WhatsApp.
             </p>
             <Link to="/catalogo" className="btn btn-secondary mt-4 w-full">
               <ArrowLeft className="h-4 w-4" />
@@ -186,7 +257,7 @@ export function ProductDetails() {
           <div className="flex items-end justify-between gap-6">
             <div>
               <h2 className="heading-2">Moldes relacionados</h2>
-              <p className="mt-2 text-ink-soft">Da mesma linha: {product.collection.name}</p>
+              <p className="mt-2 text-ink-soft">Da mesma linha e linhas relacionadas</p>
             </div>
             <Link
               to={`/catalogo?colecao=${product.collection.slug}`}

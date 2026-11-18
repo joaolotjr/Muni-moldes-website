@@ -32,15 +32,21 @@ function describe(log: AuditLog): string {
     case 'delete':
       return `Excluiu ${thing}${name}`;
     case 'image_add':
-      return log.area === 'news' ? `Trocou a imagem da notícia${name}` : `Adicionou uma foto ao produto${name}`;
+      if (log.area === 'news') return `Trocou a imagem da notícia${name}`;
+      if (log.area === 'collections') return `Trocou a foto de capa da categoria${name}`;
+      return `Adicionou uma foto ao produto${name}`;
     case 'image_remove':
-      return log.area === 'news' ? `Removeu a imagem da notícia${name}` : `Removeu uma foto do produto${name}`;
+      if (log.area === 'news') return `Removeu a imagem da notícia${name}`;
+      if (log.area === 'collections') return `Removeu a foto de capa da categoria${name}`;
+      return `Removeu uma foto do produto${name}`;
     case 'login':
       return 'Entrou no painel';
     case 'logout':
       return 'Saiu do painel';
     case 'login_failed':
       return 'Tentativa de login com senha ou e-mail errados';
+    case 'reorder':
+      return 'Mudou a ordem das categorias';
     case 'password_change':
       return 'Trocou a própria senha';
     default:
