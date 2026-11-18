@@ -7,10 +7,10 @@ export function QuoteBand() {
   const site = useSite();
   return (
     <section className="container-page pb-16 pt-4 sm:pb-24">
-      <div className="relative flex flex-col gap-8 overflow-hidden rounded-3xl bg-ink px-6 py-10 text-white sm:px-12 sm:py-14 lg:flex-row lg:items-center lg:justify-between lg:px-20 lg:py-20">
+      <div className="relative flex flex-col gap-8 overflow-hidden rounded-3xl bg-primary-dark px-6 py-10 text-white sm:px-12 sm:py-14 lg:flex-row lg:items-center lg:justify-between lg:px-20 lg:py-20">
         <div className="relative z-10 max-w-xl">
           <h2 className="heading-2">Vai comprar em quantidade?</h2>
-          <p className="mt-4 text-base leading-relaxed text-white/75 sm:text-lg">
+          <p className="mt-4 text-base leading-relaxed text-white/85 sm:text-lg">
             Envie a lista de moldes e as quantidades. Respondemos com valores e prazo de produção.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -18,12 +18,12 @@ export function QuoteBand() {
               href={site.quoteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn bg-primary-soft text-primary-dark hover:bg-primary-pale"
+              className="btn bg-white text-primary-dark shadow-soft hover:bg-primary-pale"
             >
               <WhatsAppIcon className="h-4 w-4" />
               Pedir orçamento
             </a>
-            <Link to="/catalogo" className="btn border-white/30 text-white hover:border-white">
+            <Link to="/catalogo" className="btn border-white/40 text-white hover:border-white hover:bg-white/10">
               Ver catálogo
             </Link>
           </div>
