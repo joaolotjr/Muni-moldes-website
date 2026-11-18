@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Mail, Menu, X } from 'lucide-react';
+import { ClipboardList, Mail, Menu, X } from 'lucide-react';
 import { InstagramIcon } from '../icons/InstagramIcon';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
 import { useSiteContext } from '../../contexts/SiteContext';
+import { useQuote } from '../../contexts/QuoteContext';
 
 const navItems = [
   { to: '/', label: 'Início', end: true },
@@ -12,6 +13,25 @@ const navItems = [
   { to: '/noticias', label: 'Notícias', end: false },
   { to: '/contato', label: 'Contato', end: false },
 ];
+
+/** Atalho para a lista de orçamento, com a quantidade de modelos escolhidos. */
+function QuoteListLink({ count }: { count: number }) {
+  return (
+    <Link
+      to="/orcamento"
+      aria-label={count ? `Lista de orçamento: ${count} ${count === 1 ? 'modelo' : 'modelos'}` : 'Lista de orçamento'}
+      title="Lista de orçamento"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-mid hover:text-primary"
+    >
+      <ClipboardList className="h-6 w-6" />
+      {count > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-white">
+          {count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function PublicLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,6 +42,7 @@ export function PublicLayout() {
   }, [location.pathname]);
 
   const { site, ready } = useSiteContext();
+  const { count: quoteCount } = useQuote();
   const quoteUrl = site.quoteUrl;
 
   // Primeira visita: espera os dados de contato chegarem para não piscar valores de exemplo.
@@ -59,17 +80,21 @@ export function PublicLayout() {
             ))}
           </nav>
 
-          <a
-            href={quoteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary hidden min-h-11 py-2.5 md:inline-flex"
-          >
-            Solicitar orçamento
-          </a>
+          <div className="hidden items-center gap-3 md:flex">
+            <QuoteListLink count={quoteCount} />
+            <a
+              href={quoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary min-h-11 py-2.5"
+            >
+              Solicitar orçamento
+            </a>
+          </div>
 
           {/* No celular: atalho de orçamento e menu, com área de toque de 44px */}
           <div className="flex shrink-0 items-center gap-1 md:hidden">
+            <QuoteListLink count={quoteCount} />
             <a
               href={quoteUrl}
               target="_blank"

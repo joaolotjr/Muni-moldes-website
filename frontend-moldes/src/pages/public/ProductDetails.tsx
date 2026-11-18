@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ImageOff } from 'lucide-react';
+import { ArrowLeft, ClipboardList, ImageOff } from 'lucide-react';
 import { api, API_URL } from '../../services/api';
 import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
 import { ProductCard } from '../../components/public/ProductCard';
 import type { Product } from '../../types';
 import { collectionsOf, secondaryCollectionsOf } from '../../utils/products';
+import { useQuote } from '../../contexts/QuoteContext';
+import { useToast } from '../../contexts/ToastContext';
+import { clampQuantity, MAX_QUANTITY } from '../../utils/quote';
 
 export function ProductDetails() {
   const { slug } = useParams();
@@ -15,10 +18,14 @@ export function ProductDetails() {
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const { add, has, items, count } = useQuote();
+  const { showToast } = useToast();
+  const [quantityInput, setQuantityInput] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
+      setQuantityInput(null);
       try {
         const res = await api.get<Product>(`/products/${slug}`);
         setProduct(res.data);
@@ -93,6 +100,11 @@ export function ProductDetails() {
     { label: 'Pedido mínimo', value: product.min_order ? `${product.min_order} unidades` : null },
   ].filter((spec) => spec.value);
   const alsoIn = secondaryCollectionsOf(product);
+  const inList = has(product.id);
+  // Quantidade sugerida: a que já está na lista ou o pedido mínimo do molde.
+  const quantity =
+    quantityInput ??
+    String(items.find((item) => item.productId === product.id)?.quantity ?? product.min_order ?? 1);
 
   return (
     <div className="container-page flex-1 pb-14 pt-6 sm:pb-24 sm:pt-10 lg:pt-16">
@@ -187,17 +199,50 @@ export function ProductDetails() {
           )}
 
           <div className="mt-8 border-t border-line pt-8">
+            <label htmlFor="quote-quantity" className="field-label">Quantidade</label>
+            <div className="flex gap-3">
+              <input
+                id="quote-quantity"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_QUANTITY}
+                value={quantity}
+                onChange={(e) => setQuantityInput(e.target.value)}
+                onBlur={() => setQuantityInput(String(clampQuantity(Number(quantity))))}
+                className="field w-28 text-center"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  add(product, clampQuantity(Number(quantity)));
+                  showToast(inList ? 'Quantidade atualizada na lista.' : 'Molde adicionado à lista de orçamento.', 'success');
+                }}
+                className="btn btn-primary flex-1"
+              >
+                <ClipboardList className="h-5 w-5" />
+                {inList ? 'Atualizar na lista' : 'Adicionar à lista'}
+              </button>
+            </div>
+            {product.min_order && Number(quantity) < product.min_order && (
+              <p className="mt-2 text-sm text-[#8a5300]">Pedido mínimo deste molde: {product.min_order} unidades.</p>
+            )}
+            {inList && (
+              <Link to="/orcamento" className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                Ver lista de orçamento ({count} {count === 1 ? 'modelo' : 'modelos'})
+              </Link>
+            )}
             <a
               href={site.productQuoteLink(product)}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-primary w-full py-5"
+              className="btn btn-outline mt-4 w-full"
             >
               <WhatsAppIcon className="h-5 w-5" />
-              Solicitar orçamento
+              Orçamento só deste molde
             </a>
             <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-              Informe a quantidade desejada. Para vários modelos, envie a lista completa na mesma conversa.
+              Vai pedir vários modelos? Adicione cada um à lista e envie tudo de uma vez pelo WhatsApp.
             </p>
             <Link to="/catalogo" className="btn btn-secondary mt-4 w-full">
               <ArrowLeft className="h-4 w-4" />

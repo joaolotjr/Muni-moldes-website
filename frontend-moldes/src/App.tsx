@@ -25,10 +25,13 @@ import { UserForm } from './pages/admin/UserForm';
 import { Account } from './pages/admin/Account';
 import { ActivityLog } from './pages/admin/ActivityLog';
 import { RequirePermission } from './components/admin/RequirePermission';
+import { QuoteProvider } from './contexts/QuoteContext';
+import { QuoteList } from './pages/public/QuoteList';
 
 export default function App() {
   return (
     <SiteProvider>
+    <QuoteProvider>
     <ToastProvider>
       <ConfirmProvider>
         <BrowserRouter>
@@ -42,6 +45,7 @@ export default function App() {
               <Route path="noticias" element={<News />} />
               <Route path="noticias/:slug" element={<NewsArticle />} />
               <Route path="contato" element={<Contact />} />
+              <Route path="orcamento" element={<QuoteList />} />
             </Route>
             
             {/* Admin Login */}
@@ -73,6 +77,7 @@ export default function App() {
         </BrowserRouter>
       </ConfirmProvider>
     </ToastProvider>
+    </QuoteProvider>
     </SiteProvider>
   );
 }
