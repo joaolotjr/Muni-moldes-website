@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Factory, MessagesSquare, Package } from 'lucide-react';
 import { api } from '../../services/api';
 import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../../components/icons/WhatsAppIcon';
+import { IntroSplash } from '../../components/public/IntroSplash';
+import { INTRO_HERO_OFFSET_MS, shouldShowIntro } from '../../utils/intro';
 import { ProductCard } from '../../components/public/ProductCard';
 import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
@@ -45,6 +47,12 @@ const collectionTones = [
 
 export function Home() {
   const site = useSite();
+  // Decidido uma vez, na montagem: a abertura não volta ao navegar entre páginas.
+  const [introVisible, setIntroVisible] = useState(shouldShowIntro);
+  const [heroOffset] = useState(() => (introVisible ? INTRO_HERO_OFFSET_MS : 0));
+  const hideIntro = useCallback(() => setIntroVisible(false), []);
+  const cascade = (ms: number, rise?: number) =>
+    ({ '--d': `${ms}ms`, ...(rise ? { '--rise': `${rise}px` } : {}) }) as CSSProperties;
   const [collections, setCollections] = useState<Collection[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,23 +90,32 @@ export function Home() {
 
   return (
     <div className="flex-1">
+      {introVisible && <IntroSplash onDone={hideIntro} />}
+
       {/* Abertura */}
-      <section className="overflow-hidden bg-surface-low">
+      <section
+        className="overflow-hidden bg-surface-low"
+        style={{ '--hero-offset': `${heroOffset}ms` } as CSSProperties}
+      >
         <div className="container-page grid items-center gap-10 py-12 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
           <div>
             {site.heroBadge && (
-              <span className="chip bg-secondary-soft px-4 py-1.5 text-[11px] text-secondary-dark">
+              <span className="hero-cascade chip bg-secondary-soft px-4 py-1.5 text-[11px] text-secondary-dark" style={cascade(0, 8)}>
                 {site.heroBadge}
               </span>
             )}
             <h1 className="heading-1 mt-5 sm:mt-6">
-              {site.heroTitle}{' '}
-              <span className="font-normal italic text-primary">{site.heroHighlight}</span>
+              <span className="hero-cascade block" style={cascade(150, 18)}>
+                {site.heroTitle}
+              </span>{' '}
+              <span className="hero-cascade block font-normal italic text-primary" style={cascade(400, 18)}>
+                {site.heroHighlight}
+              </span>
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-soft sm:text-lg">
+            <p className="hero-cascade mt-5 max-w-lg text-base leading-relaxed text-ink-soft sm:text-lg" style={cascade(700, 12)}>
               {site.heroText}
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <div className="hero-cascade mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4" style={cascade(950, 10)}>
               <Link to="/catalogo" className="btn btn-primary sm:px-10 sm:py-4">
                 Explorar catálogo
                 <ArrowRight className="h-4 w-4" />
@@ -116,7 +133,11 @@ export function Home() {
           </div>
 
           {/* Selo da marca com amostras de cor, a partir do tablet */}
-          <div className="relative mx-auto hidden h-80 w-80 md:block lg:h-[26rem] lg:w-[26rem]" aria-hidden="true">
+          <div
+            className="hero-cascade relative mx-auto hidden h-80 w-80 md:block lg:h-[26rem] lg:w-[26rem]"
+            style={{ ...cascade(300, 24), '--dur': '1100ms' } as CSSProperties}
+            aria-hidden="true"
+          >
             <div className="absolute inset-6 flex items-center justify-center rounded-full bg-white shadow-soft">
               <img src="/logo.png" alt="" className="h-3/4 w-3/4 object-contain" />
             </div>
