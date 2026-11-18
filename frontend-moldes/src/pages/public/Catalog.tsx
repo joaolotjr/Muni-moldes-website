@@ -7,6 +7,8 @@ import { QuoteBand } from '../../components/public/QuoteBand';
 import type { Collection, Product } from '../../types';
 import { collectionsOf, countByCollectionId, matchesSearch } from '../../utils/products';
 
+type SortKey = 'featured' | 'newest' | 'name';
+
 export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -15,6 +17,7 @@ export function Catalog() {
   const [search, setSearch] = useState('');
 
   const activeSlug = searchParams.get('colecao') || '';
+  const [sort, setSort] = useState<SortKey>('featured');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,12 +48,18 @@ export function Catalog() {
 
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return products.filter(
+    const list = products.filter(
       (product) =>
         (!activeSlug || collectionsOf(product).some((c) => c.slug === activeSlug)) &&
         matchesSearch(product, term),
     );
-  }, [products, activeSlug, search]);
+    // A API já devolve na ordem "destaques primeiro".
+    if (sort === 'newest') {
+      return [...list].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    if (sort === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return list;
+  }, [products, activeSlug, search, sort]);
 
   const clearFilters = () => {
     setSearch('');
@@ -141,11 +150,25 @@ export function Catalog() {
         </aside>
 
         <div className="min-w-0 flex-1">
-          <p className="mb-5 text-sm text-ink-soft sm:mb-8" aria-live="polite">
-            {loading
-              ? 'Carregando moldes...'
-              : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
-          </p>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+            <p className="text-sm text-ink-soft" aria-live="polite">
+              {loading
+                ? 'Carregando moldes...'
+                : `Exibindo ${visibleProducts.length} ${visibleProducts.length === 1 ? 'molde' : 'moldes'}`}
+            </p>
+            <label className="flex items-center gap-2 text-sm text-ink-soft">
+              Ordenar por
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                className="min-h-11 cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-primary focus:outline-none"
+              >
+                <option value="featured">Destaques</option>
+                <option value="newest">Mais recentes</option>
+                <option value="name">Nome (A a Z)</option>
+              </select>
+            </label>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 lg:gap-8">

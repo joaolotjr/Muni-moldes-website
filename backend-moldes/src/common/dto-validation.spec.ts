@@ -200,6 +200,28 @@ describe('Campos de código, dados técnicos e categorias do produto', () => {
     },
   );
 
+  it('aceita destaque, selo e ordem; recusa selo desconhecido', async () => {
+    expect(
+      (
+        await check(CreateProductDto, {
+          ...base,
+          is_featured: true,
+          badge: 'new',
+          sort_order: -3,
+        })
+      ).fields,
+    ).toEqual([]);
+    expect(
+      (
+        await check(CreateProductDto, {
+          ...base,
+          badge: 'promocao',
+          sort_order: 1.5,
+        })
+      ).fields,
+    ).toEqual(['badge', 'sort_order']);
+  });
+
   it('recusa números fora do intervalo ou não inteiros', async () => {
     const { fields } = await check(CreateProductDto, {
       ...base,

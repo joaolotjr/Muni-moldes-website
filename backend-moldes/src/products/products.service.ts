@@ -126,7 +126,11 @@ export class ProductsService implements OnApplicationBootstrap {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.collection', 'collection')
-      .leftJoinAndSelect('product.collections', 'collections');
+      .leftJoinAndSelect('product.collections', 'collections')
+      // Destaques primeiro, depois a ordem definida no painel, depois os mais novos.
+      .orderBy('product.is_featured', 'DESC')
+      .addOrderBy('product.sort_order', 'ASC')
+      .addOrderBy('product.created_at', 'DESC');
 
     if (collectionSlug) {
       // Considera todas as categorias do produto, não só a principal.

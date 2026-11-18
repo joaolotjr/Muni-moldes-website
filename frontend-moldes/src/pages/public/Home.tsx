@@ -79,7 +79,16 @@ export function Home() {
 
   const countByCollection = useMemo(() => countByCollectionId(products), [products]);
 
-  const latestProducts = useMemo(() => [...products].reverse().slice(0, 6), [products]);
+  const featuredProducts = useMemo(() => products.filter((p) => p.is_featured).slice(0, 6), [products]);
+  // Os destaques já aparecem acima; aqui entram os mais novos que não são destaque.
+  const latestProducts = useMemo(
+    () =>
+      [...products]
+        .filter((p) => !p.is_featured)
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+        .slice(0, 6),
+    [products],
+  );
 
   return (
     <div className="flex-1">
@@ -236,6 +245,17 @@ export function Home() {
                       );
                     })}
                   </ul>
+                )}
+
+                {featuredProducts.length > 0 && (
+                  <>
+                    <h3 className="heading-3 mt-12 sm:mt-16">Destaques</h3>
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-3">
+                      {featuredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {latestProducts.length > 0 && (

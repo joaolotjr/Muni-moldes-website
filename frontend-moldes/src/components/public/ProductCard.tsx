@@ -3,7 +3,7 @@ import { ImageOff } from 'lucide-react';
 import { API_URL } from '../../services/api';
 import { useSite } from '../../contexts/SiteContext';
 import { WhatsAppIcon } from '../icons/WhatsAppIcon';
-import type { Product } from '../../types';
+import { badgeLabels, type Product } from '../../types';
 
 export function ProductCard({ product }: { product: Product }) {
   const site = useSite();
@@ -31,6 +31,11 @@ export function ProductCard({ product }: { product: Product }) {
               <ImageOff className="h-6 w-6" strokeWidth={1.5} />
               <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">Foto em breve</span>
             </div>
+          )}
+          {product.badge && badgeLabels[product.badge] && (
+            <span className="chip absolute left-2 top-2 bg-primary text-white shadow-sm sm:left-3 sm:top-3">
+              {badgeLabels[product.badge]}
+            </span>
           )}
           {product.collection && (
             <span className="chip absolute right-2 top-2 max-w-[calc(100%-1rem)] bg-white/90 text-primary backdrop-blur-sm sm:right-3 sm:top-3">

@@ -29,6 +29,10 @@ export class Collection {
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
 
+  /** Ordem de exibição: menor vem antes. Definida pela tela de categorias. */
+  @Column({ type: 'int', default: 0 })
+  sort_order: number;
+
   @Column({ type: 'timestamptz', nullable: true })
   active_from: Date;
 

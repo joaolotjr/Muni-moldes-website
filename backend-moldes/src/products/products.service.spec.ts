@@ -11,6 +11,8 @@ describe('ProductsService', () => {
   let service: ProductsService;
   const queryBuilder = {
     leftJoinAndSelect: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     getMany: jest.fn(),
   };
@@ -256,6 +258,19 @@ describe('ProductsService', () => {
 
       await expect(service.findAll()).resolves.toEqual([{ id: 'prod-1' }]);
       expect(queryBuilder.andWhere).not.toHaveBeenCalled();
+    });
+
+    it('ordena: destaques, depois a ordem do painel, depois os mais novos', async () => {
+      await service.findAll();
+
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+        'product.is_featured',
+        'DESC',
+      );
+      expect(queryBuilder.addOrderBy.mock.calls).toEqual([
+        ['product.sort_order', 'ASC'],
+        ['product.created_at', 'DESC'],
+      ]);
     });
 
     it('filtra pela categoria considerando todas as do produto', async () => {

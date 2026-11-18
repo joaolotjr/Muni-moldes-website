@@ -1,7 +1,15 @@
+export type ProductBadge = 'new' | 'bestseller';
+
+export const badgeLabels: Record<ProductBadge, string> = {
+  new: 'Lançamento',
+  bestseller: 'Mais vendido',
+};
+
 export interface Collection {
   id: string;
   name: string;
   slug: string;
+  sort_order?: number;
   // Campos de visibilidade, usados no painel.
   is_active?: boolean;
   active_from?: string | null;
@@ -32,6 +40,12 @@ export interface Product {
   collection: Collection | null;
   /** Todas as categorias, incluindo a principal. */
   collections?: Collection[];
+  /** Aparece em "Destaques" na home e primeiro no catálogo. */
+  is_featured?: boolean;
+  badge?: ProductBadge | null;
+  /** Ordem no catálogo: menor vem antes. */
+  sort_order?: number;
+  created_at?: string;
   images: ProductImage[];
   // Campos de visibilidade, usados no painel.
   collection_id?: string | null;

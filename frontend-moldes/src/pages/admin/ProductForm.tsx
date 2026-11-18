@@ -9,7 +9,7 @@ import { slugify } from '../../utils/slugify';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import { VisibilityFields } from '../../components/admin/VisibilityFields';
-import type { Collection, Product, ProductImage } from '../../types';
+import { badgeLabels, type Collection, type Product, type ProductBadge, type ProductImage } from '../../types';
 
 /** Igual a MAX_COLLECTIONS no backend (save-product.dto.ts). */
 const MAX_COLLECTIONS = 5;
@@ -29,6 +29,9 @@ const emptyForm = {
   collection_id: '',
   /** Todas as categorias marcadas, incluindo a principal. */
   collection_ids: [] as string[],
+  is_featured: false,
+  badge: '' as '' | ProductBadge,
+  sort_order: '',
   is_active: true,
   active_from: '',
   active_until: '',
@@ -91,6 +94,9 @@ export function ProductForm() {
           material: product.material ?? '',
           piece_weight: product.piece_weight ?? '',
           min_order: product.min_order ? String(product.min_order) : '',
+          is_featured: product.is_featured === true,
+          badge: product.badge ?? '',
+          sort_order: product.sort_order ? String(product.sort_order) : '',
           collection_id: product.collection_id ?? '',
           collection_ids: product.collections?.length
             ? product.collections.map((collection) => collection.id)
@@ -152,6 +158,9 @@ export function ProductForm() {
     if (!form.name.trim()) return showToast('Digite o nome do produto.', 'error');
     if (!slug) return showToast('Digite o endereço (URL) do produto.', 'error');
     const wholeNumber = (value: string) => (value.trim() ? Number(value) : null);
+    if (form.sort_order.trim() && !Number.isInteger(Number(form.sort_order))) {
+      return showToast('A ordem no catálogo deve ser um número inteiro.', 'error');
+    }
     for (const [field, label] of [
       ['cavities', 'O número de cavidades'],
       ['min_order', 'O pedido mínimo'],
@@ -176,6 +185,9 @@ export function ProductForm() {
       min_order: wholeNumber(form.min_order),
       collection_id: form.collection_id || null,
       collection_ids: form.collection_ids,
+      is_featured: form.is_featured,
+      badge: form.badge || null,
+      sort_order: form.sort_order.trim() ? Number(form.sort_order) : 0,
       is_active: form.is_active,
       active_from: localInputToIso(form.active_from),
       active_until: localInputToIso(form.active_until),
@@ -540,6 +552,59 @@ export function ProductForm() {
                 })}
               </ul>
             )}
+          </section>
+
+          <section className="panel sm:p-6">
+            <h2 className="mb-4 font-serif text-xl font-semibold">Vitrine</h2>
+            <div className="space-y-5">
+              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4">
+                <span>
+                  <span className="block font-medium">Destaque</span>
+                  <span className="block text-sm text-ink-soft">Aparece em "Destaques" na página inicial e no topo do catálogo.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={form.is_featured}
+                  onChange={(e) => update({ is_featured: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <span className="relative h-7 w-12 shrink-0 rounded-full bg-line transition-colors after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-secondary peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary" />
+              </label>
+              <div>
+                <label htmlFor="product-badge" className="label-caps">Selo no cartão</label>
+                <select
+                  id="product-badge"
+                  value={form.badge}
+                  onChange={(e) => update({ badge: e.target.value as '' | ProductBadge })}
+                  className="input cursor-pointer"
+                >
+                  <option value="">Nenhum</option>
+                  {Object.entries(badgeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-[13px] text-outline">
+                  "Mais vendido" é uma escolha de vocês: o site não registra vendas.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="product-sort" className="label-caps">Ordem no catálogo</label>
+                <input
+                  id="product-sort"
+                  type="number"
+                  inputMode="numeric"
+                  step={1}
+                  value={form.sort_order}
+                  onChange={(e) => update({ sort_order: e.target.value })}
+                  placeholder="0"
+                  className="input"
+                />
+                <p className="mt-2 text-[13px] text-outline">
+                  Menor aparece antes. Em branco, os mais novos vêm primeiro.
+                </p>
+              </div>
+            </div>
           </section>
 
           <section className="panel sm:p-6">

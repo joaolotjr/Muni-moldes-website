@@ -8,8 +8,13 @@ describe('CollectionsService', () => {
   let service: CollectionsService;
   const queryBuilder = {
     andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    addOrderBy: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
     getMany: jest.fn(),
+    getRawOne: jest.fn(),
   };
+  const manager = { update: jest.fn() };
   const repository = {
     create: jest.fn((data) => data),
     save: jest.fn((collection) =>
@@ -18,7 +23,13 @@ describe('CollectionsService', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    find: jest.fn(),
     createQueryBuilder: jest.fn(() => queryBuilder),
+    manager: {
+      transaction: jest.fn((work: (m: typeof manager) => Promise<void>) =>
+        work(manager),
+      ),
+    },
   };
 
   beforeEach(async () => {
@@ -34,14 +45,56 @@ describe('CollectionsService', () => {
     service = module.get(CollectionsService);
   });
 
-  it('create salva a coleção', async () => {
+  it('create salva a coleção no fim da ordem', async () => {
+    queryBuilder.getRawOne.mockResolvedValue({ max: 4 });
+
     await expect(
       service.create({ name: 'Páscoa', slug: 'pascoa' }),
     ).resolves.toEqual({
       id: 'col-1',
       name: 'Páscoa',
       slug: 'pascoa',
+      sort_order: 5,
     });
+  });
+
+  it('a primeira categoria fica na posição 0', async () => {
+    queryBuilder.getRawOne.mockResolvedValue({ max: null });
+
+    await service.create({ name: 'Páscoa', slug: 'pascoa' });
+
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ sort_order: 0 }),
+    );
+  });
+
+  describe('reorder', () => {
+    beforeEach(() => {
+      repository.find.mockResolvedValue([
+        { id: 'a' },
+        { id: 'b' },
+        { id: 'c' },
+      ]);
+      queryBuilder.getMany.mockResolvedValue([]);
+    });
+
+    it('grava a posição de cada categoria na ordem recebida', async () => {
+      await service.reorder(['c', 'a', 'b']);
+
+      expect(manager.update.mock.calls).toEqual([
+        [Collection, { id: 'c' }, { sort_order: 0 }],
+        [Collection, { id: 'a' }, { sort_order: 1 }],
+        [Collection, { id: 'b' }, { sort_order: 2 }],
+      ]);
+    });
+
+    it.each([[['a', 'b']], [['a', 'b', 'x']], [['a', 'b', 'c', 'd']]])(
+      'recusa lista que não tem exatamente todas as categorias: %j',
+      async (ids) => {
+        await expect(service.reorder(ids)).rejects.toThrow(BadRequestException);
+        expect(manager.update).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('findAll', () => {

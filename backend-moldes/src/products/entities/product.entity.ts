@@ -51,6 +51,18 @@ export class Product {
   @Column({ type: 'int', nullable: true })
   min_order: number | null;
 
+  /** Aparece na seção "Destaques" da home e primeiro no catálogo. */
+  @Column({ type: 'boolean', default: false })
+  is_featured: boolean;
+
+  /** Selo no cartão: "new" (Lançamento) ou "bestseller" (Mais vendido). */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  badge: string | null;
+
+  /** Ordem no catálogo: menor vem antes; empate, o mais novo primeiro. */
+  @Column({ type: 'int', default: 0 })
+  sort_order: number;
+
   /** Categoria principal: usada no selo do cartão, no caminho da ficha e no link canônico. */
   @Column({ type: 'uuid', nullable: true })
   collection_id: string;

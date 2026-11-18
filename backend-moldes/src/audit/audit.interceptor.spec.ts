@@ -35,6 +35,7 @@ describe('classify', () => {
       { area: 'news', action: 'image_add', targetId: ID },
     ],
     ['PUT', '/settings', { area: 'settings', action: 'update' }],
+    ['PUT', '/collections/order', { area: 'collections', action: 'reorder' }],
     ['PUT', '/auth/password', { area: 'auth', action: 'password_change' }],
     [
       'DELETE',

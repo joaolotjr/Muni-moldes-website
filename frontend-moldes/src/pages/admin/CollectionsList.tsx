@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { apiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../../contexts/ToastContext';
@@ -35,6 +35,27 @@ export function CollectionsList() {
     }
     return counts;
   }, [products]);
+
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  // Troca a categoria de lugar com a vizinha e grava a ordem nova.
+  const move = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= collections.length) return;
+    const previous = collections;
+    const next = [...collections];
+    [next[index], next[target]] = [next[target], next[index]];
+    setCollections(next);
+    setSavingOrder(true);
+    try {
+      await api.put('/collections/order', { ids: next.map((c) => c.id) });
+    } catch (error) {
+      setCollections(previous);
+      showToast(apiErrorMessage(error, 'Erro ao salvar a ordem.'), 'error');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
 
   const handleDelete = (collection: Collection) => {
     const linked = countByCollection.get(collection.id) ?? 0;
@@ -74,7 +95,7 @@ export function CollectionsList() {
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-line bg-surface-low px-4 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft sm:px-6">
           <div>Nome da categoria</div>
           <div className="text-right">Produtos</div>
-          <div className="w-20 text-right">Ações</div>
+          <div className="text-right">Ações</div>
         </div>
 
         {loading ? (
@@ -86,7 +107,7 @@ export function CollectionsList() {
           </div>
         ) : (
           <ul>
-            {collections.map((collection) => {
+            {collections.map((collection, index) => {
               const count = countByCollection.get(collection.id) ?? 0;
               const principalOf = principalCount.get(collection.id) ?? 0;
               const active = collection.is_active !== false;
@@ -109,7 +130,27 @@ export function CollectionsList() {
                   <span className={`status-chip border border-line bg-surface ${count === 0 ? 'text-outline/70' : 'text-ink-soft'}`}>
                     {count} {count === 1 ? 'item' : 'itens'}
                   </span>
-                  <div className="flex w-20 justify-end gap-1">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => move(index, -1)}
+                      disabled={index === 0 || savingOrder}
+                      aria-label={`Subir ${collection.name}`}
+                      title="Subir na ordem"
+                      className="icon-btn"
+                    >
+                      <ArrowUp className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(index, 1)}
+                      disabled={index === collections.length - 1 || savingOrder}
+                      aria-label={`Descer ${collection.name}`}
+                      title="Descer na ordem"
+                      className="icon-btn"
+                    >
+                      <ArrowDown className="h-5 w-5" />
+                    </button>
                     <Link to={`/admin/colecoes/${collection.id}`} aria-label={`Editar ${collection.name}`} title="Editar" className="icon-btn">
                       <Pencil className="h-5 w-5" />
                     </Link>

@@ -21,15 +21,43 @@ export class CollectionsService {
 
   async create(data: CreateCollectionDto): Promise<Collection> {
     assertValidSchedule(data);
+    // A nova categoria entra no fim da ordem.
+    const { max } = (await this.collectionsRepository
+      .createQueryBuilder('collection')
+      .select('MAX(collection.sort_order)', 'max')
+      .getRawOne<{ max: number | null }>()) ?? { max: null };
     return saveWithClearErrors(() =>
       this.collectionsRepository.save(
-        this.collectionsRepository.create(data as DeepPartial<Collection>),
+        this.collectionsRepository.create({
+          ...(data as DeepPartial<Collection>),
+          sort_order: (max ?? -1) + 1,
+        }),
       ),
     );
   }
 
+  /** Grava a ordem das categorias: a posição na lista vira a ordem. */
+  async reorder(ids: string[]): Promise<Collection[]> {
+    const existing = await this.collectionsRepository.find();
+    const known = new Set(existing.map((c) => c.id));
+    if (ids.length !== known.size || ids.some((id) => !known.has(id))) {
+      throw new BadRequestException(
+        'A lista precisa ter todas as categorias, sem repetir. Recarregue a página e tente de novo.',
+      );
+    }
+    await this.collectionsRepository.manager.transaction(async (manager) => {
+      for (const [index, id] of ids.entries()) {
+        await manager.update(Collection, { id }, { sort_order: index });
+      }
+    });
+    return this.findAll();
+  }
+
   async findAll(isPublic: boolean = false): Promise<Collection[]> {
-    const query = this.collectionsRepository.createQueryBuilder('collection');
+    const query = this.collectionsRepository
+      .createQueryBuilder('collection')
+      .orderBy('collection.sort_order', 'ASC')
+      .addOrderBy('collection.name', 'ASC');
 
     if (isPublic) {
       query.andWhere('collection.is_active = :isActive', { isActive: true });

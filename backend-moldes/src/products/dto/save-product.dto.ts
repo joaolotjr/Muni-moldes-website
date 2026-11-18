@@ -5,6 +5,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsISO8601,
   IsNotEmpty,
@@ -26,6 +27,8 @@ import {
 /** Código de referência: letras, números, ponto e hífen. Gravado em maiúsculas. */
 export const CODE_PATTERN = /^[A-Z0-9][A-Z0-9.-]*$/;
 export const MAX_COLLECTIONS = 5;
+export const PRODUCT_BADGES = ['new', 'bestseller'] as const;
+export type ProductBadge = (typeof PRODUCT_BADGES)[number];
 
 /** Dados enviados pelo painel ao criar um produto. Campo fora desta lista é recusado. */
 export class CreateProductDto {
@@ -95,6 +98,20 @@ export class CreateProductDto {
   @Min(1, { message: 'O pedido mínimo deve ser pelo menos 1' })
   @Max(1_000_000, { message: 'O pedido mínimo é grande demais' })
   min_order?: number | null;
+
+  @IsOptional()
+  @IsBoolean({ message: 'O campo "destaque" deve ser verdadeiro ou falso' })
+  is_featured?: boolean;
+
+  @IsOptional()
+  @IsIn(PRODUCT_BADGES, { message: 'Selo inválido' })
+  badge?: ProductBadge | null;
+
+  @IsOptional()
+  @IsInt({ message: 'A ordem deve ser um número inteiro' })
+  @Min(-9999, { message: 'A ordem deve estar entre -9999 e 9999' })
+  @Max(9999, { message: 'A ordem deve estar entre -9999 e 9999' })
+  sort_order?: number;
 
   /** Categoria principal. */
   @IsOptional()

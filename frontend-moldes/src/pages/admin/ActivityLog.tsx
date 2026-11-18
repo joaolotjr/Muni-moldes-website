@@ -41,6 +41,8 @@ function describe(log: AuditLog): string {
       return 'Saiu do painel';
     case 'login_failed':
       return 'Tentativa de login com senha ou e-mail errados';
+    case 'reorder':
+      return 'Mudou a ordem das categorias';
     case 'password_change':
       return 'Trocou a própria senha';
     default:

@@ -47,6 +47,8 @@ export function classify(method: string, path: string): Classified | null {
   }
   if (!(area in TARGETS)) return null;
 
+  if (second === 'order' && method === 'PUT')
+    return { area, action: 'reorder' };
   const targetId = second && UUID.test(second) ? second : undefined;
   // Fotos de produto (/images) e capa de notícia (/cover).
   if (third === 'images' || third === 'cover') {
