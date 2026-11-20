@@ -27,7 +27,9 @@ Os nomes de arquivo são relativos à raiz do repositório.
   do `docker-compose.yml` foi alterada pelo painel do servidor de desenvolvimento e fica como está,
   fora do git.
 - **Fase B**: concluída e no `main` (PR #5: itens 3.1, 3.2, 3.8, 3.3, 3.7 e 3.4).
-- Falta: fases C, D e E. A fase C depende da escolha de hospedagem e domínio (item 2.1).
+- Falta: fases C, D, E e F. A fase C depende da escolha de hospedagem e domínio (item 2.1).
+- Novos no plano (20/11/2026): 3.9 "Nossos clientes" e 3.10 site em inglês com tradução
+  automática. O 3.9 não depende de nada e pode ser feito a qualquer momento.
 
 ## 0. Ponto de partida
 
@@ -87,7 +89,8 @@ Confirmar com o João antes de rodar, caso a troca tenha sido intencional.
 | B. Vender mais | 3.1, 3.2, 3.8, 3.3, 3.7, 3.4 | É o que mais muda o valor do site para o cliente |
 | C. Ir ao ar | 2.1 a 2.7, 1.1 | Publicar com HTTPS, migrações e backup |
 | D. Ser encontrado | 4.1 a 4.5 | Só faz sentido com o site no ar e com domínio |
-| E. Acabamento | 5.x, 1.2 a 1.4, 3.5, 3.6 | Melhorias que não bloqueiam o lançamento |
+| E. Acabamento | 5.x, 1.2 a 1.4, 3.5, 3.6, 3.9 | Melhorias que não bloqueiam o lançamento |
+| F. Inglês | 3.10 | Depende das migrações (2.5) e se beneficia da seção 4 (hreflang, sitemap) |
 
 A fase B pode trocar de lugar com a C se a prioridade for publicar logo.
 
@@ -1022,6 +1025,190 @@ Sem uma principal, cada um desses pontos teria que escolher ao acaso.
 **Melhorias futuras.** Filtros combinados no catálogo (tipo + ocasião);
 categorias com subcategorias.
 
+### 3.9 Seção "Nossos clientes" — tamanho M
+
+**Situação atual.** Não existe. A seção 6 já sugeria depoimentos e clientes
+atendidos como forma de gerar confiança em venda entre empresas.
+
+**Objetivo.** Mostrar quem já compra da Muni (confeitarias, lojas,
+revendedores), com logo e, quando houver, um depoimento curto, tudo editável
+pelo painel.
+
+**Passo a passo.**
+
+1. **Banco.** Tabela `clients`: nome, logo (`logo_url`), cidade e estado, link
+   (site ou Instagram, opcional), depoimento (opcional, até uns 300
+   caracteres), nome e cargo de quem deu o depoimento (opcionais), ativo e
+   ordem de exibição.
+2. **API.** Módulo `clients`, no molde dos já existentes: `GET /clients`
+   (público, só os ativos, na ordem definida), criar, editar, excluir,
+   reordenar e `POST/DELETE /clients/:id/logo`, com validação por DTO.
+3. **Permissão.** Nova área `clients` ("Clientes") na lista de permissões, nos
+   dois lados (`auth/permissions.ts` e `config/permissions.ts`). O registro de
+   atividades passa a reconhecer a área.
+4. **Logos.** Reaproveitar a compactação de fotos, com um tamanho menor (cerca
+   de 600 px) e **preservando a transparência**: logo costuma ser PNG com fundo
+   transparente, e o WebP mantém o canal alfa desde que a imagem não seja
+   achatada sobre um fundo. Conferir isso em `image-processing.ts`.
+5. **Painel.** Tela "Clientes" com lista (logo, nome, cidade, ativo), setas de
+   ordem e formulário com envio do logo e pré-visualização sobre o fundo claro
+   do site.
+6. **Site.**
+   - Home: faixa "Nossos clientes" com os logos em grade, alinhados e na mesma
+     altura, entre "Destaques" e "Nossa história". Um ou dois depoimentos em
+     destaque, quando houver.
+   - Página `/clientes` opcional, com todos os logos e depoimentos, se a lista
+     crescer.
+   - Sem cliente ativo, a seção não aparece.
+
+**Dicas e cuidados.**
+
+- **Autorização por escrito.** Mostrar nome e logo de uma empresa, e
+  principalmente um depoimento, exige a permissão dela. Guardar essa
+  autorização (uma mensagem de WhatsApp já serve como registro).
+- **Só clientes reais.** Clientes de exemplo para testar o visual precisam ser
+  apagados antes de publicar; um cliente inventado no ar é propaganda
+  enganosa.
+- **Logos de tamanhos e cores diferentes** quebram o visual. Duas saídas:
+  padronizar a altura e deixar um respiro igual em volta, ou exibir todos em
+  um tom só (cinza ou vinho) e coloridos ao passar o mouse. Testar com logos
+  reais antes de escolher.
+- **Dados estruturados (item 4.4).** Não marcar os depoimentos como avaliações
+  (`Review`) para o Google: avaliações escritas pela própria empresa sobre si
+  mesma vão contra as diretrizes e podem ser penalizadas.
+- Com a versão em inglês (item 3.10), o depoimento entra na tradução
+  automática, mas o nome do cliente e da empresa nunca é traduzido.
+
+**Como testar.**
+
+- Cadastrar clientes com e sem logo, com e sem depoimento: a home fica
+  equilibrada nos três casos.
+- Logo PNG com fundo transparente continua transparente depois do envio.
+- Cliente inativo some do site; sem nenhum ativo, a seção não aparece.
+- Usuário sem a permissão "Clientes" não acessa a tela.
+- Testes do serviço, do controller e do DTO, como os de categorias.
+
+**Melhorias futuras.** Selo "Cliente desde 2024"; filtro por estado em um mapa;
+link do cliente para os moldes que ele mais compra (depende do item 3.5).
+
+### 3.10 Site em inglês, com tradução automática — tamanho G
+
+**Situação atual.** Tudo é em português: os textos fixos estão escritos
+direto no código das telas e o conteúdo (produtos, categorias, notícias,
+textos do site) é gravado em português no banco.
+
+**Objetivo.** Ter o site inteiro também em inglês, sem que os primos precisem
+escrever nada em inglês: eles continuam editando tudo **só em português** no
+painel, e a versão em inglês é gerada automaticamente.
+
+**Decisão importante antes de começar.** Um site em inglês atrai clientes de
+fora do Brasil. Vale combinar com os primos se a fábrica vai atender pedidos do
+exterior (envio internacional, pagamento, prazos) ou se o inglês é só para
+imagem. A resposta muda textos como "Atendemos todo o Brasil" e o que a
+mensagem de orçamento deve dizer.
+
+**O que precisa ser traduzido, e como.**
+
+| Tipo de texto | Exemplos | Como traduz |
+|---|---|---|
+| Textos fixos das telas | Menus, botões, títulos de seção, avisos, mensagens de erro do site | Uma vez só, no código, em arquivos de tradução (pt e en). Revisados por pessoa |
+| Conteúdo editado no painel | Nome, descrição e material dos produtos; nome das categorias; notícias; textos de Configurações; depoimentos (3.9) | Automaticamente, a cada vez que o texto em português é salvo |
+| O que não se traduz | Código do produto, medidas, nomes de clientes, endereço, telefone | Fica igual nas duas línguas |
+
+**Passo a passo.**
+
+1. **Textos fixos.** Adotar uma biblioteca de internacionalização no
+   frontend (a mais comum para React é `react-i18next`) e mover todos os
+   textos das páginas públicas para os arquivos `pt.json` e `en.json`. É o
+   maior trabalho manual do item: são dezenas de textos espalhados pelas
+   telas. O painel administrativo continua só em português.
+2. **Endereços.** Português continua na raiz (`/catalogo`, `/molde/...`) e o
+   inglês ganha o prefixo `/en` (`/en/catalogo`, `/en/molde/...`). Endereço
+   próprio por língua é o que permite ao Google indexar as duas versões e ao
+   cliente compartilhar o link já em inglês. O endereço (slug) do produto é o
+   mesmo nas duas línguas, para não duplicar a manutenção.
+3. **Troca de língua.** Seletor "PT | EN" no cabeçalho, que leva para a mesma
+   página na outra língua. Na primeira visita, se o navegador estiver em outra
+   língua, **sugerir** a versão em inglês com um aviso discreto, sem
+   redirecionar sozinho (redirecionar atrapalha o Google e irrita quem quer o
+   português).
+4. **Onde guardar as traduções.** Tabela `content_translations` com: tipo de
+   conteúdo, id, campo, língua, texto traduzido, um resumo (hash) do texto em
+   português que gerou a tradução e se ela foi **corrigida à mão**.
+5. **Tradução automática ao salvar.** Quando um texto em português é criado
+   ou alterado, a API compara o resumo com o da tradução guardada; se mudou,
+   pede a tradução a um serviço externo e grava. Sem mudança, não traduz de
+   novo (economiza custo). Se o serviço estiver fora do ar, o salvamento em
+   português **não falha**: a tradução fica pendente e é refeita depois por
+   uma rotina periódica (a mesma infraestrutura de agendamento do item 1.4).
+6. **Serviço de tradução.** Duas opções boas:
+
+   | Serviço | Vantagens | Cuidados |
+   |---|---|---|
+   | DeepL API | Ótima qualidade de português para inglês; aceita glossário de termos | Plano gratuito com limite mensal de caracteres; conferir os valores atuais |
+   | API do Claude (Anthropic) | Entende o contexto (sabe que é um catálogo de moldes de confeitaria), segue instruções de tom e mantém formatação Markdown das notícias | Custo por uso; a resposta precisa ser validada (só o texto traduzido, sem comentários) |
+
+   Recomendação: começar pela DeepL pelo glossário e pela previsibilidade, e
+   avaliar o Claude se as descrições saírem "duras". A chave fica no `.env`,
+   nunca no código. O conteúdo enviado é público (vai para o site de qualquer
+   forma), então não há problema de privacidade.
+7. **Glossário.** Lista de termos fixos para a tradução não variar: molde →
+   mold, cavidade → cavity, bombom → bonbon, trufa → truffle, ovo de Páscoa →
+   Easter egg, silicone platinado → platinum-cure silicone, e o nome "Muni
+   Moldes", que não se traduz. Fica em um arquivo no repositório e é enviado
+   ao serviço junto com o texto.
+8. **API pública.** Os endereços de leitura aceitam `?lang=en` e devolvem os
+   campos já traduzidos, com o português como reserva quando a tradução ainda
+   não existir. Assim o site em inglês nunca mostra um campo vazio.
+9. **Painel: ver e corrigir.** No formulário do produto (e nos demais), uma
+   aba "Inglês" mostra a tradução automática ao lado do português, com a
+   opção de corrigir. Tradução corrigida à mão fica marcada e **não é
+   sobrescrita** quando o português muda; em vez disso, aparece um aviso
+   "o português mudou desde a sua correção", para alguém revisar.
+10. **Tradução do que já existe.** Um script único traduz todo o conteúdo
+    cadastrado antes do item entrar no ar.
+11. **Mensagem de orçamento.** Para quem está no site em inglês, a mensagem
+    do WhatsApp sai em inglês, mas com o código do produto, para a fábrica
+    identificar sem depender da tradução.
+12. **Busca e compartilhamento (seção 4).** `<html lang>` certo em cada
+    versão, tags `hreflang` ligando as duas línguas, as duas versões no
+    sitemap e a prévia de compartilhamento (item 4.2) na língua da página.
+
+**Dicas e cuidados.**
+
+- **Tradução automática erra termos técnicos.** O glossário resolve a maior
+  parte; a revisão de uma pessoa que fale inglês, pelo menos nos textos fixos
+  e nos produtos mais vendidos, resolve o resto.
+- **Custo.** Cada salvamento de texto alterado gera uma tradução. Com o volume
+  da Muni, deve ficar dentro do plano gratuito da DeepL, mas vale um limite de
+  segurança mensal na API e um aviso se ele for atingido.
+- **Não traduzir na hora da visita.** Traduzir a cada acesso seria lento, caro
+  e instável. A tradução acontece ao salvar e fica guardada.
+- **Textos que mudam juntos.** Ao trocar um texto fixo de tela, a versão em
+  inglês do mesmo texto tem de mudar no mesmo PR. Um teste pode conferir que
+  `pt.json` e `en.json` têm as mesmas chaves.
+- **Fazer depois das migrações (2.5)**, porque o item cria tabela nova, e de
+  preferência junto ou depois da seção 4, por causa do `hreflang` e do
+  sitemap.
+
+**Como testar.**
+
+- Trocar de língua em todas as páginas públicas e conferir que nenhum texto
+  fixo ficou em português na versão em inglês.
+- Editar a descrição de um produto em português e ver a versão em inglês
+  atualizada em seguida; salvar sem mudar o texto não gera nova tradução.
+- Corrigir uma tradução à mão, mudar o português e conferir que a correção
+  continua lá, com o aviso de revisão.
+- Com o serviço de tradução indisponível, salvar em português funciona e a
+  tradução é refeita depois.
+- Glossário respeitado em uma amostra de produtos.
+- Teste automático de que `pt.json` e `en.json` têm as mesmas chaves.
+
+**Melhorias futuras.** Espanhol, que serve à América Latina, reaproveitando
+toda a estrutura (só um novo arquivo de textos fixos e uma língua a mais na
+tradução automática); endereços (slugs) traduzidos, se o tráfego em inglês
+justificar.
+
 ---
 
 ## 4. Ser encontrado no Google e compartilhado no WhatsApp
@@ -1346,7 +1533,7 @@ a conformidade legal.
   pronta ao lado. As fotos geradas por IA servem só para testar.
 - **Mostrar a peça pronta.** Quem compra molde quer ver o chocolate que sai
   dele. Vale um segundo tipo de foto por produto ("resultado").
-- **Depoimentos e clientes atendidos**, com autorização, na home. Em venda
+- **Depoimentos e clientes atendidos** (agora item 3.9), com autorização, na home. Em venda
   entre empresas, é o que mais gera confiança.
 - **Perguntas frequentes**: pedido mínimo, prazo, envio, cuidados com o molde.
   Reduz as mesmas perguntas no WhatsApp e ajuda na busca.
@@ -1382,11 +1569,15 @@ a conformidade legal.
 | 10 | Quem revisa o texto de privacidade | 5.5 |
 | 12 | Categorias múltiplas com uma principal, ou dois eixos (tipo e ocasião) | 3.8 |
 | 11 | Fotos de ambiente das oito categorias (decidido: foto própria, com capa automática de reserva) | 3.7, etapa 2 |
+| 13 | Quais clientes aparecem, com autorização por escrito de cada um | 3.9 |
+| 14 | A fábrica vai atender pedidos do exterior ou o inglês é só para imagem? | 3.10 |
+| 15 | Serviço de tradução: DeepL ou API do Claude | 3.10 |
+| 16 | Quem revisa as traduções (textos fixos e produtos principais) | 3.10 |
 
 ## 8. Resumo por tamanho
 
 | Tamanho | Itens |
 |---|---|
 | P | 1.1, 1.2, 1.3, 1.4, 2.4, 2.7, 2.8, 2.9, 3.1, 3.2, 3.7 (etapa 1), 4.1, 4.3, 4.4, 4.5, 4.6, 5.1, 5.2, 5.5, 5.6, 5.7 |
-| M | 2.2, 2.3, 2.5, 2.6, 3.3, 3.5, 3.6, 3.7 (etapa 2), 3.8, 4.2 (abordagem A), 5.3, 5.4 |
-| G | 3.4, 4.2 (abordagem C) |
+| M | 2.2, 2.3, 2.5, 2.6, 3.3, 3.5, 3.6, 3.7 (etapa 2), 3.8, 3.9, 4.2 (abordagem A), 5.3, 5.4 |
+| G | 3.4, 3.10, 4.2 (abordagem C) |
