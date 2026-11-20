@@ -1118,7 +1118,8 @@ painel, e a versão em inglês é gerada automaticamente.
 - **A revisão é do próprio administrador.** Sempre que um texto em português
   for alterado, o painel mostra em seguida a versão em inglês para quem
   editou conferir e corrigir (passo 9).
-- **Serviço de tradução:** em avaliação; comparação no passo 6.
+- **Serviço de tradução: DeepL API Free** (decidido em 20/11/2026; comparação
+  no passo 6).
 
 **O que muda por atender o exterior.**
 
@@ -1189,10 +1190,26 @@ painel, e a versão em inglês é gerada automaticamente.
    cabe no gratuito**, e com o Claude o custo seria de centavos de dólar por
    mês (com o Opus 5.5, poucos dólares na tradução inicial).
 
-   Recomendação: **DeepL API Free** como padrão, pela qualidade, pelo
-   glossário e por ser permanente. O código fica preparado para trocar de
-   serviço só pela configuração, e a API do Claude é a alternativa se as
-   descrições saírem "duras". A chave fica no `.env`, nunca no código. O
+   **Escolhido: DeepL API Free**, pela qualidade, pelo glossário e por ser
+   permanente. O código fica preparado para trocar de serviço só pela
+   configuração, e a API do Claude é a alternativa se as descrições saírem
+   "duras".
+
+   **Como usar a DeepL API Free:**
+   - criar a conta no site da DeepL, no plano "DeepL API Free" (não confundir
+     com a assinatura do tradutor para uso pessoal); o cadastro costuma pedir
+     um cartão para verificação, mesmo sem cobrança;
+   - a chave de acesso fica no `.env` do servidor (`DEEPL_API_KEY`); a conta
+     gratuita usa um endereço de API próprio, diferente do plano pago, e o
+     código precisa escolher o endereço certo pela chave;
+   - criar o glossário pela própria API, a partir do arquivo do repositório
+     (passo 7), e guardar o identificador dele na configuração;
+   - ao chegar a 500 mil caracteres no mês, a API recusa novos pedidos até
+     o mês virar: as traduções ficam pendentes e a rotina do passo 5 refaz
+     depois. Vale um aviso no painel quando o uso passar de 80% do limite
+     (a própria API informa o consumo);
+   - se um dia o volume passar do gratuito, a troca é para o plano pago da
+     DeepL, sem mudar o código. A chave fica no `.env`, nunca no código. O
    conteúdo enviado é público (vai para o site de qualquer forma), então não
    há problema de privacidade.
 7. **Glossário.** Lista de termos fixos para a tradução não variar: molde →
@@ -1624,7 +1641,7 @@ a conformidade legal.
 | 11 | Fotos de ambiente das oito categorias (decidido: foto própria, com capa automática de reserva) | 3.7, etapa 2 |
 | 13 | Quais clientes aparecem (decidido: começa vazio; o administrador cadastra pelo painel, com autorização de cada um) | 3.9 |
 | 14 | Atender o exterior? (decidido: sim, o serviço será aberto para fora) | 3.10 |
-| 15 | Serviço de tradução (em avaliação; recomendado: DeepL API Free) | 3.10 |
+| 15 | Serviço de tradução (decidido: DeepL API Free) | 3.10 |
 | 16 | Quem revisa as traduções (decidido: o próprio administrador, logo após salvar) | 3.10 |
 | 17 | Regras para pedidos internacionais: envio, pagamento, prazos, impostos | 3.10 |
 
