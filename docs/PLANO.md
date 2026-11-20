@@ -28,8 +28,9 @@ Os nomes de arquivo são relativos à raiz do repositório.
   fora do git.
 - **Fase B**: concluída e no `main` (PR #5: itens 3.1, 3.2, 3.8, 3.3, 3.7 e 3.4).
 - Falta: fases C, D, E e F. A fase C depende da escolha de hospedagem e domínio (item 2.1).
-- Novos no plano (20/11/2026): 3.9 "Nossos clientes" e 3.10 site em inglês com tradução
-  automática. O 3.9 não depende de nada e pode ser feito a qualquer momento.
+- Novos no plano (20/11/2026): 3.9 "Clientes e parceiros" e 3.10 site em inglês com
+  tradução automática, com as decisões do João registradas nos itens. O 3.9 não depende de
+  nada e pode ser feito a qualquer momento.
 
 ## 0. Ponto de partida
 
@@ -1025,36 +1026,44 @@ Sem uma principal, cada um desses pontos teria que escolher ao acaso.
 **Melhorias futuras.** Filtros combinados no catálogo (tipo + ocasião);
 categorias com subcategorias.
 
-### 3.9 Seção "Nossos clientes" — tamanho M
+### 3.9 Seção "Clientes e parceiros" — tamanho M
 
 **Situação atual.** Não existe. A seção 6 já sugeria depoimentos e clientes
 atendidos como forma de gerar confiança em venda entre empresas.
 
 **Objetivo.** Mostrar quem já compra da Muni (confeitarias, lojas,
-revendedores), com logo e, quando houver, um depoimento curto, tudo editável
-pelo painel.
+revendedores) e seus parceiros, com logo e, quando houver, um depoimento curto,
+tudo editável pelo painel.
+
+**Decisão do João (20/11/2026).** A seção começa **vazia**: nenhum cliente é
+cadastrado pelo desenvolvimento. O painel ganha um item próprio, "Clientes e
+parceiros", onde o administrador cadastra cada um. Enquanto não houver
+cadastro ativo, a seção não aparece no site.
 
 **Passo a passo.**
 
-1. **Banco.** Tabela `clients`: nome, logo (`logo_url`), cidade e estado, link
+1. **Banco.** Tabela `clients`: nome, tipo (`client` ou `partner`, para o site
+   poder separar "Clientes" de "Parceiros"), logo (`logo_url`), cidade e estado, link
    (site ou Instagram, opcional), depoimento (opcional, até uns 300
    caracteres), nome e cargo de quem deu o depoimento (opcionais), ativo e
    ordem de exibição.
 2. **API.** Módulo `clients`, no molde dos já existentes: `GET /clients`
    (público, só os ativos, na ordem definida), criar, editar, excluir,
    reordenar e `POST/DELETE /clients/:id/logo`, com validação por DTO.
-3. **Permissão.** Nova área `clients` ("Clientes") na lista de permissões, nos
+3. **Permissão.** Nova área `clients` ("Clientes e parceiros") na lista de permissões, nos
    dois lados (`auth/permissions.ts` e `config/permissions.ts`). O registro de
    atividades passa a reconhecer a área.
 4. **Logos.** Reaproveitar a compactação de fotos, com um tamanho menor (cerca
    de 600 px) e **preservando a transparência**: logo costuma ser PNG com fundo
    transparente, e o WebP mantém o canal alfa desde que a imagem não seja
    achatada sobre um fundo. Conferir isso em `image-processing.ts`.
-5. **Painel.** Tela "Clientes" com lista (logo, nome, cidade, ativo), setas de
+5. **Painel.** Item "Clientes e parceiros" no menu lateral, com lista (logo, nome,
+   tipo, cidade, ativo), filtro por tipo, setas de
    ordem e formulário com envio do logo e pré-visualização sobre o fundo claro
    do site.
 6. **Site.**
-   - Home: faixa "Nossos clientes" com os logos em grade, alinhados e na mesma
+   - Home: faixa "Clientes e parceiros" (ou só "Nossos clientes", se não houver
+     parceiro cadastrado) com os logos em grade, alinhados e na mesma
      altura, entre "Destaques" e "Nossa história". Um ou dois depoimentos em
      destaque, quando houver.
    - Página `/clientes` opcional, com todos os logos e depoimentos, se a lista
@@ -1101,11 +1110,32 @@ textos do site) é gravado em português no banco.
 escrever nada em inglês: eles continuam editando tudo **só em português** no
 painel, e a versão em inglês é gerada automaticamente.
 
-**Decisão importante antes de começar.** Um site em inglês atrai clientes de
-fora do Brasil. Vale combinar com os primos se a fábrica vai atender pedidos do
-exterior (envio internacional, pagamento, prazos) ou se o inglês é só para
-imagem. A resposta muda textos como "Atendemos todo o Brasil" e o que a
-mensagem de orçamento deve dizer.
+**Decisões do João (20/11/2026).**
+
+- **A fábrica vai atender o exterior.** Ainda não há clientes de fora, mas o
+  serviço será aberto. O site em inglês, portanto, é para vender, não só para
+  imagem.
+- **A revisão é do próprio administrador.** Sempre que um texto em português
+  for alterado, o painel mostra em seguida a versão em inglês para quem
+  editou conferir e corrigir (passo 9).
+- **Serviço de tradução:** em avaliação; comparação no passo 6.
+
+**O que muda por atender o exterior.**
+
+- Textos comerciais precisam de versão internacional: "Atendemos todo o
+  Brasil" vira algo como "We ship to Brazil and abroad", e só depois de os
+  primos confirmarem que fazem envio internacional.
+- Uma página ou bloco "Pedidos internacionais" explicando como funciona:
+  orçamento pelo WhatsApp ou e-mail, forma de pagamento, envio e prazos, e
+  quem paga impostos de importação. Os primos definem as regras; o site só
+  as apresenta.
+- O WhatsApp funciona no mundo todo, mas o número precisa aparecer no formato
+  internacional (+55) na versão em inglês, e o e-mail ganha mais peso, porque
+  muitos compradores de fora preferem escrever.
+- Medidas continuam em centímetros e gramas; vale avaliar mostrar polegadas
+  e onças entre parênteses na versão em inglês, para o público dos Estados
+  Unidos.
+- Preços continuam fora do site, como hoje.
 
 **O que precisa ser traduzido, e como.**
 
@@ -1141,17 +1171,30 @@ mensagem de orçamento deve dizer.
    novo (economiza custo). Se o serviço estiver fora do ar, o salvamento em
    português **não falha**: a tradução fica pendente e é refeita depois por
    uma rotina periódica (a mesma infraestrutura de agendamento do item 1.4).
-6. **Serviço de tradução.** Duas opções boas:
+6. **Serviço de tradução.** Comparação levantada em 20/11/2026 (valores de
+   fontes públicas, em dólar; conferir na página oficial antes de contratar):
 
-   | Serviço | Vantagens | Cuidados |
-   |---|---|---|
-   | DeepL API | Ótima qualidade de português para inglês; aceita glossário de termos | Plano gratuito com limite mensal de caracteres; conferir os valores atuais |
-   | API do Claude (Anthropic) | Entende o contexto (sabe que é um catálogo de moldes de confeitaria), segue instruções de tom e mantém formatação Markdown das notícias | Custo por uso; a resposta precisa ser validada (só o texto traduzido, sem comentários) |
+   | Serviço | Gratuito | Depois do gratuito | Observações |
+   |---|---|---|---|
+   | DeepL API | 500 mil caracteres por mês, permanente | Plano pago por uso (o antigo "Pro" virou "Growth"; valor por milhão a confirmar) | Ótima qualidade; aceita glossário |
+   | Google Cloud Translation | 500 mil caracteres por mês | US$ 20 por milhão | Exige conta com cobrança ativada mesmo no gratuito |
+   | Azure AI Translator | 2 milhões de caracteres por mês, permanente | US$ 10 por milhão | No gratuito, ao passar do limite o serviço para em vez de cobrar |
+   | Amazon Translate | 2 milhões por mês, só nos primeiros 12 meses | US$ 15 por milhão | Depois de um ano, passa a cobrar |
+   | API do Claude | Sem camada gratuita; paga por uso | Haiku 5.5: US$ 0,10 por milhão de tokens de entrada e US$ 0,50 de saída. Opus 5.5: US$ 4 e US$ 20 | Entende o contexto e o tom; o processamento em lote (Batch) custa metade |
+   | LibreTranslate | Grátis, roda no próprio servidor | — | Qualidade inferior; pesa no servidor |
 
-   Recomendação: começar pela DeepL pelo glossário e pela previsibilidade, e
-   avaliar o Claude se as descrições saírem "duras". A chave fica no `.env`,
-   nunca no código. O conteúdo enviado é público (vai para o site de qualquer
-   forma), então não há problema de privacidade.
+   **Volume esperado da Muni:** algumas centenas de produtos com descrições
+   curtas somam na casa de 100 a 200 mil caracteres na tradução inicial, e
+   bem menos por mês depois disso. Ou seja, **qualquer um dos serviços acima
+   cabe no gratuito**, e com o Claude o custo seria de centavos de dólar por
+   mês (com o Opus 5.5, poucos dólares na tradução inicial).
+
+   Recomendação: **DeepL API Free** como padrão, pela qualidade, pelo
+   glossário e por ser permanente. O código fica preparado para trocar de
+   serviço só pela configuração, e a API do Claude é a alternativa se as
+   descrições saírem "duras". A chave fica no `.env`, nunca no código. O
+   conteúdo enviado é público (vai para o site de qualquer forma), então não
+   há problema de privacidade.
 7. **Glossário.** Lista de termos fixos para a tradução não variar: molde →
    mold, cavidade → cavity, bombom → bonbon, trufa → truffle, ovo de Páscoa →
    Easter egg, silicone platinado → platinum-cure silicone, e o nome "Muni
@@ -1160,11 +1203,20 @@ mensagem de orçamento deve dizer.
 8. **API pública.** Os endereços de leitura aceitam `?lang=en` e devolvem os
    campos já traduzidos, com o português como reserva quando a tradução ainda
    não existir. Assim o site em inglês nunca mostra um campo vazio.
-9. **Painel: ver e corrigir.** No formulário do produto (e nos demais), uma
-   aba "Inglês" mostra a tradução automática ao lado do português, com a
-   opção de corrigir. Tradução corrigida à mão fica marcada e **não é
-   sobrescrita** quando o português muda; em vez disso, aparece um aviso
-   "o português mudou desde a sua correção", para alguém revisar.
+9. **Painel: revisão logo após salvar** (decisão do João). Ao salvar um
+   texto em português, o painel mostra em seguida a versão em inglês gerada,
+   lado a lado com o português, para quem editou conferir. Ali dá para
+   aprovar como está ou corrigir. Cada tradução tem uma situação:
+   - **automática, a revisar**: acabou de ser gerada;
+   - **revisada**: alguém do painel aprovou ou corrigiu.
+
+   O painel inicial mostra quantas traduções estão "a revisar", com atalho
+   para a lista. Uma tradução a revisar **já aparece no site** (é melhor do
+   que nada), mas fica na fila até alguém aprovar. Tradução corrigida à mão
+   **não é sobrescrita** quando o português muda; em vez disso, aparece o
+   aviso "o português mudou desde a sua correção", e ela volta para a fila.
+   Se a tradução ainda não tiver chegado na hora de salvar (serviço lento ou
+   fora do ar), o painel avisa e ela entra na fila quando ficar pronta.
 10. **Tradução do que já existe.** Um script único traduz todo o conteúdo
     cadastrado antes do item entrar no ar.
 11. **Mensagem de orçamento.** Para quem está no site em inglês, a mensagem
@@ -1177,8 +1229,9 @@ mensagem de orçamento deve dizer.
 **Dicas e cuidados.**
 
 - **Tradução automática erra termos técnicos.** O glossário resolve a maior
-  parte; a revisão de uma pessoa que fale inglês, pelo menos nos textos fixos
-  e nos produtos mais vendidos, resolve o resto.
+  parte; a revisão do administrador logo após salvar (passo 9) resolve o
+  resto. Os textos fixos das telas, que não passam pelo painel, merecem uma
+  revisão única por alguém com bom inglês antes de publicar.
 - **Custo.** Cada salvamento de texto alterado gera uma tradução. Com o volume
   da Muni, deve ficar dentro do plano gratuito da DeepL, mas vale um limite de
   segurança mensal na API e um aviso se ele for atingido.
@@ -1569,10 +1622,11 @@ a conformidade legal.
 | 10 | Quem revisa o texto de privacidade | 5.5 |
 | 12 | Categorias múltiplas com uma principal, ou dois eixos (tipo e ocasião) | 3.8 |
 | 11 | Fotos de ambiente das oito categorias (decidido: foto própria, com capa automática de reserva) | 3.7, etapa 2 |
-| 13 | Quais clientes aparecem, com autorização por escrito de cada um | 3.9 |
-| 14 | A fábrica vai atender pedidos do exterior ou o inglês é só para imagem? | 3.10 |
-| 15 | Serviço de tradução: DeepL ou API do Claude | 3.10 |
-| 16 | Quem revisa as traduções (textos fixos e produtos principais) | 3.10 |
+| 13 | Quais clientes aparecem (decidido: começa vazio; o administrador cadastra pelo painel, com autorização de cada um) | 3.9 |
+| 14 | Atender o exterior? (decidido: sim, o serviço será aberto para fora) | 3.10 |
+| 15 | Serviço de tradução (em avaliação; recomendado: DeepL API Free) | 3.10 |
+| 16 | Quem revisa as traduções (decidido: o próprio administrador, logo após salvar) | 3.10 |
+| 17 | Regras para pedidos internacionais: envio, pagamento, prazos, impostos | 3.10 |
 
 ## 8. Resumo por tamanho
 
